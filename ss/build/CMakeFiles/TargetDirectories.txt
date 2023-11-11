@@ -1,0 +1,4 @@
+/home/ss/workspace/ss/build/CMakeFiles/ss.dir
+/home/ss/workspace/ss/build/CMakeFiles/test.dir
+/home/ss/workspace/ss/build/CMakeFiles/edit_cache.dir
+/home/ss/workspace/ss/build/CMakeFiles/rebuild_cache.dir
