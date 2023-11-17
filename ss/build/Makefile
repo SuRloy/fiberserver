@@ -169,6 +169,30 @@ ss/log.cc.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ss.dir/build.make CMakeFiles/ss.dir/ss/log.cc.s
 .PHONY : ss/log.cc.s
 
+ss/util.o: ss/util.cc.o
+.PHONY : ss/util.o
+
+# target to build an object file
+ss/util.cc.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ss.dir/build.make CMakeFiles/ss.dir/ss/util.cc.o
+.PHONY : ss/util.cc.o
+
+ss/util.i: ss/util.cc.i
+.PHONY : ss/util.i
+
+# target to preprocess a source file
+ss/util.cc.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ss.dir/build.make CMakeFiles/ss.dir/ss/util.cc.i
+.PHONY : ss/util.cc.i
+
+ss/util.s: ss/util.cc.s
+.PHONY : ss/util.s
+
+# target to generate assembly for a file
+ss/util.cc.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ss.dir/build.make CMakeFiles/ss.dir/ss/util.cc.s
+.PHONY : ss/util.cc.s
+
 tests/test.o: tests/test.cc.o
 .PHONY : tests/test.o
 
@@ -206,6 +230,9 @@ help:
 	@echo "... ss/log.o"
 	@echo "... ss/log.i"
 	@echo "... ss/log.s"
+	@echo "... ss/util.o"
+	@echo "... ss/util.i"
+	@echo "... ss/util.s"
 	@echo "... tests/test.o"
 	@echo "... tests/test.i"
 	@echo "... tests/test.s"

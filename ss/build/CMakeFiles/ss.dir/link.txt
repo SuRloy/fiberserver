@@ -1,1 +1,1 @@
-/usr/bin/c++ -fPIC  -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -shared -Wl,-soname,libss.so -o ../lib/libss.so CMakeFiles/ss.dir/ss/log.cc.o 
+/usr/bin/c++ -fPIC  -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -shared -Wl,-soname,libss.so -o ../lib/libss.so CMakeFiles/ss.dir/ss/log.cc.o CMakeFiles/ss.dir/ss/util.cc.o 
