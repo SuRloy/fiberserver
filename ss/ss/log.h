@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <stdarg.h>
 
 #define SS_LOG_LEVEL(logger, level) \
 	if (logger->getLevel() <= level) \
@@ -21,6 +22,21 @@
 #define SS_LOG_WARN(logger) SS_LOG_LEVEL(logger, ss::LogLevel::WARN)
 #define SS_LOG_ERROR(logger) SS_LOG_LEVEL(logger, ss::LogLevel::ERROR)
 #define SS_LOG_FATAL(logger) SS_LOG_LEVEL(logger, ss::LogLevel::FATAL)
+
+#define SS_LOG_FMT_LEVEL(logger, level, fmt, ...) \
+	if(logger->getLevel() <= level) \
+        ss::LogEventWrap(ss::LogEvent::ptr(new ss::LogEvent(logger, level, \
+                        __FILE__, __LINE__, 0, ss::GetThreadId(),\
+                ss::GetFiberId(), time(0)))).getEvent()->format(fmt, __VA_ARGS__)
+
+#define SS_LOG_FMT_DEBUG(logger, fmt, ...) SS_LOG_FMT_LEVEL(logger, ss::LogLevel::DEBUG, fmt, __VA_ARGS__)
+#define SS_LOG_FMT_INFO(logger, fmt, ...)  SS_LOG_FMT_LEVEL(logger, ss::LogLevel::INFO, fmt, __VA_ARGS__)
+#define SS_LOG_FMT_WARN(logger, fmt, ...)  SS_LOG_FMT_LEVEL(logger, ss::LogLevel::WARN, fmt, __VA_ARGS__)
+#define SS_LOG_FMT_ERROR(logger, fmt, ...) SS_LOG_FMT_LEVEL(logger, ss::LogLevel::ERROR, fmt, __VA_ARGS__)
+#define SS_LOG_FMT_FATAL(logger, fmt, ...) SS_LOG_FMT_LEVEL(logger, ss::LogLevel::FATAL, fmt, __VA_ARGS__)
+//#define SS_LOG_NAME(name) ss::LoggerMgr::GetInstance()->getLogger(name)
+
+
 
 namespace ss {
 
@@ -61,6 +77,8 @@ public:
 
 	std::stringstream& getSS() { return m_ss;}
 	void format(const char* fmt, ...);
+	void format(const char* fmt, va_list al);
+
 private:
 	const char* m_file = nullptr;//文件名
 	int32_t m_line = 0;//行号
@@ -79,6 +97,7 @@ public:
 	LogEventWrap(LogEvent::ptr e);
 	~LogEventWrap();
 	std::stringstream& getSS();
+	LogEvent::ptr getEvent() const { return m_event;}
 private:
 	LogEvent::ptr m_event;
 };
@@ -166,9 +185,9 @@ private:
 //定义输出到文件的Appender
 class FileLogAppender : public LogAppender {
 public:
-	typedef std::shared_ptr<StdoutLogAppender> ptr;
+	typedef std::shared_ptr<FileLogAppender> ptr;
 	FileLogAppender(const std::string& filename);
-	virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) override;
+	void log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) override;
 	
 	bool reopen();//重新打开文件，文件打开成功返回true
 private:
