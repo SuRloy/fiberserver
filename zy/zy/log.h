@@ -10,6 +10,8 @@
 #include <iostream>
 #include <vector>
 #include <stdarg.h>
+#include <map>
+#include "singleton.h"
 
 #define ZY_LOG_LEVEL(logger, level) \
 	if (logger->getLevel() <= level) \
@@ -138,6 +140,8 @@ public:
 	
 	void setFormatter(LogFormatter::ptr val) { m_formatter = val;}
 	LogFormatter::ptr getFormatter() const { return m_formatter;}
+	LogLevel::Level getLevel() const { return m_level;}
+	void setLevel(LogLevel::Level val) { m_level = val;}
 protected:
 	LogLevel::Level m_level = LogLevel::DEBUG;//针对哪些LEVEL作出记录(?)protected让子类可以使用到
 	LogFormatter::ptr m_formatter;
@@ -195,6 +199,20 @@ private:
 	std::string m_filename;
 	std::ofstream m_filestream;
 };
+
+class LoggerManager {
+public:
+	LoggerManager();
+	Logger::ptr getLogger(const std::string& name);
+	
+	void init();
+private:
+	std::map<std::string, Logger::ptr> m_loggers;
+	Logger::ptr m_root;
+
+};
+
+typedef zy::Singleton<LoggerManager> LoggerMgr;
 
 };
 

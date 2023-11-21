@@ -237,6 +237,7 @@ FileLogAppender::FileLogAppender(const std::string& filename)
 void FileLogAppender::log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) {
 	if (level >= m_level) {
 		std::string str = m_formatter->format(logger, level, event);
+		m_filestream << str;
 		//std::cout << str << std::endl;
 	}
 }
@@ -245,7 +246,8 @@ bool FileLogAppender::reopen() {
 	if (m_filestream) {
 		m_filestream.close();
 	}
-	m_filestream.open(m_filename);
+	//改变为追加模式
+	m_filestream.open(m_filename, std::ios::app);
 	return !!m_filestream;//双感叹号转为0/1
 }
 
@@ -384,6 +386,27 @@ void LogFormatter::init() {
     //std::cout << m_items.size() << std::endl;
 }
 
+LoggerManager::LoggerManager() {
+    m_root.reset(new Logger);
+    m_root->addAppender(LogAppender::ptr(new StdoutLogAppender));
+
+    //m_loggers[m_root->m_name] = m_root;
+
+    //init();
+}
+
+Logger::ptr LoggerManager::getLogger(const std::string& name) {
+    auto it = m_loggers.find(name);
+	return it == m_loggers.end() ? m_root : it->second;
+    // if(it != m_loggers.end()) {
+    //     return it->second;
+    // }
+
+    // Logger::ptr logger(new Logger(name));
+    // logger->m_root = m_root;
+    // m_loggers[name] = logger;
+    // return logger;
+}
 
 }
 

@@ -1,0 +1,10 @@
+2023-11-22 01:12:35	ERROR	test error
+2023-11-22 01:12:35	ERROR	test macro fmt error aa
+2023-11-22 01:24:19	ERROR	test error
+2023-11-22 01:24:19	ERROR	test macro fmt error aa
+2023-11-22 01:24:22	ERROR	test error
+2023-11-22 01:24:22	ERROR	test macro fmt error aa
+2023-11-22 01:45:04	ERROR	test error
+2023-11-22 01:45:04	ERROR	test macro fmt error aa
+2023-11-22 01:45:34	ERROR	test error
+2023-11-22 01:45:34	ERROR	test macro fmt error aa

@@ -176,5 +176,5 @@ CMakeFiles/zy.dir/zy/log.cc.o: /home/ss/workspace/zy/zy/log.cc \
  /usr/include/c++/11/bits/vector.tcc /usr/include/c++/11/map \
  /usr/include/c++/11/bits/stl_tree.h /usr/include/c++/11/bits/stl_map.h \
  /usr/include/c++/11/bits/stl_multimap.h \
- /usr/include/c++/11/bits/erase_if.h /usr/include/c++/11/functional \
- /usr/include/c++/11/bits/std_function.h
+ /usr/include/c++/11/bits/erase_if.h /home/ss/workspace/zy/zy/singleton.h \
+ /usr/include/c++/11/functional /usr/include/c++/11/bits/std_function.h
