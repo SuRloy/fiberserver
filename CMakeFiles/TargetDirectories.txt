@@ -1,0 +1,4 @@
+/home/ss/workspace/CMakeFiles/zy.dir
+/home/ss/workspace/CMakeFiles/test.dir
+/home/ss/workspace/CMakeFiles/edit_cache.dir
+/home/ss/workspace/CMakeFiles/rebuild_cache.dir
