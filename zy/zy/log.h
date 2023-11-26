@@ -11,6 +11,7 @@
 #include <vector>
 #include <stdarg.h>
 #include <map>
+#include "util.h"
 #include "singleton.h"
 
 #define ZY_LOG_LEVEL(logger, level) \
@@ -38,6 +39,7 @@
 #define ZY_LOG_FMT_FATAL(logger, fmt, ...) ZY_LOG_FMT_LEVEL(logger, zy::LogLevel::FATAL, fmt, __VA_ARGS__)
 //#define ZY_LOG_NAME(name) zy::LoggerMgr::GetInstance()->getLogger(name)
 
+#define ZY_LOG_ROOT() zy::LoggerMgr::GetInstance()->getRoot()
 
 
 namespace zy {
