@@ -1,5 +1,5 @@
-/home/zouyang/webserver/zy/build/CMakeFiles/rebuild_cache.dir
-/home/zouyang/webserver/zy/build/CMakeFiles/edit_cache.dir
-/home/zouyang/webserver/zy/build/CMakeFiles/test.dir
-/home/zouyang/webserver/zy/build/CMakeFiles/test_config.dir
-/home/zouyang/webserver/zy/build/CMakeFiles/zy.dir
+/home/ss/workspace/zy/build/CMakeFiles/zy.dir
+/home/ss/workspace/zy/build/CMakeFiles/test.dir
+/home/ss/workspace/zy/build/CMakeFiles/test_config.dir
+/home/ss/workspace/zy/build/CMakeFiles/edit_cache.dir
+/home/ss/workspace/zy/build/CMakeFiles/rebuild_cache.dir
