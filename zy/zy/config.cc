@@ -16,7 +16,7 @@ ConfigVarBase::ptr Config::LookupBase(const std::string& name) {
 static void ListAllMember(const std::string& prefix,
                           const YAML::Node& node,
                           std::list<std::pair<std::string, const YAML::Node> >& output) {
-    if(prefix.find_first_not_of("abcdefghikjlmnopqrstuvwxyz._012345678")
+    if(prefix.find_first_not_of("abcdefghikjlmnopqrstuvwxyz._0123456789")
             != std::string::npos) {
         ZY_LOG_ERROR(ZY_LOG_ROOT()) << "Config invalid name: " << prefix << " : " << node;
         return;
