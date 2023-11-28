@@ -7,6 +7,7 @@
 #include <sstream>
 #include <boost/lexical_cast.hpp>
 #include "log.h"
+#include <yaml-cpp/yaml.h>
 
 namespace zy {
 
@@ -16,6 +17,7 @@ public:
     ConfigVarBase(const std::string& name, const std::string& description = "")
         :m_name(name)
         ,m_description(description) {
+            std::transform(m_name.begin(), m_name.end(), m_name.begin(), ::tolower);
         }
         virtual ~ConfigVarBase() {}
 
@@ -82,7 +84,7 @@ public:
             ZY_LOG_INFO(ZY_LOG_ROOT()) << "Lookup name=" << name << "exists";
             return tmp;
         }
-        if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._0123456789")
+        if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyz._012345678")
                 != std::string::npos) {
             ZY_LOG_ERROR(ZY_LOG_ROOT()) << "Lookup name invalid" << name;
             throw std::invalid_argument(name);
@@ -100,6 +102,10 @@ public:
         }
         return std::dynamic_pointer_cast<ConfigVar<T>>(it->second);          
     }//查找
+
+    static void LoadFromYaml(const YAML::Node& root);
+
+    static ConfigVarBase::ptr LookupBase(const std::string& name);
 private:
     static ConfigVarMap s_datas;
 };

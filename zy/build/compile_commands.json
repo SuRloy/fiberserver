@@ -1,0 +1,31 @@
+[
+{
+  "directory": "/home/zouyang/webserver/zy/build",
+  "command": "/usr/bin/g++   -I../. -I/home/zouyang/app/local/include   -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -g   -o CMakeFiles/test.dir/tests/test.cc.o -c /home/zouyang/webserver/zy/tests/test.cc",
+  "file": "/home/zouyang/webserver/zy/tests/test.cc"
+},
+
+{
+  "directory": "/home/zouyang/webserver/zy/build",
+  "command": "/usr/bin/g++   -I../. -I/home/zouyang/app/local/include   -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -g   -o CMakeFiles/test_config.dir/tests/test_config.cc.o -c /home/zouyang/webserver/zy/tests/test_config.cc",
+  "file": "/home/zouyang/webserver/zy/tests/test_config.cc"
+},
+
+{
+  "directory": "/home/zouyang/webserver/zy/build",
+  "command": "/usr/bin/g++  -Dzy_EXPORTS -I../. -I/home/zouyang/app/local/include   -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -g -fPIC   -o CMakeFiles/zy.dir/zy/log.cc.o -c /home/zouyang/webserver/zy/zy/log.cc",
+  "file": "/home/zouyang/webserver/zy/zy/log.cc"
+},
+
+{
+  "directory": "/home/zouyang/webserver/zy/build",
+  "command": "/usr/bin/g++  -Dzy_EXPORTS -I../. -I/home/zouyang/app/local/include   -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -g -fPIC   -o CMakeFiles/zy.dir/zy/util.cc.o -c /home/zouyang/webserver/zy/zy/util.cc",
+  "file": "/home/zouyang/webserver/zy/zy/util.cc"
+},
+
+{
+  "directory": "/home/zouyang/webserver/zy/build",
+  "command": "/usr/bin/g++  -Dzy_EXPORTS -I../. -I/home/zouyang/app/local/include   -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -g -fPIC   -o CMakeFiles/zy.dir/zy/config.cc.o -c /home/zouyang/webserver/zy/zy/config.cc",
+  "file": "/home/zouyang/webserver/zy/zy/config.cc"
+}
+]

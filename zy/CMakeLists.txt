@@ -6,7 +6,9 @@ set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-de
 
 include_directories(.)
 include_directories(/usr/local/include)
+include_directories(/home/zouyang/app/local/include)#实验室服务器地址
 link_directories(/usr/local/lib)
+link_directories(/home/zouyang/app/local/lib)#实验室服务器地址
 
 set(LIB_SRC
     zy/log.cc
@@ -20,7 +22,7 @@ add_library(zy SHARED ${LIB_SRC})
 
 add_executable(test tests/test.cc)
 add_dependencies(test zy)
-target_link_libraries(test zy)
+target_link_libraries(test zy yaml-cpp)
 
 add_executable(test_config tests/test_config.cc)
 add_dependencies(test_config zy)
