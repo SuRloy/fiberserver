@@ -59,7 +59,7 @@ void print_yaml(const YAML::Node& node, int level) {
 
 void test_yaml() {
     //YAML::Node root = YAML::LoadFile("/home/ss/workspace/zy/bin/conf/log.yml"); 本地主机
-    YAML::Node root = YAML::LoadFile("../bin/conf/log.yml");
+    YAML::Node root = YAML::LoadFile("../bin/conf/test.yml");
     print_yaml(root, 0);
 }
 
@@ -94,7 +94,7 @@ void test_config() {
     XX_M(g_str_int_map_value_config, str_int_map, before);
     XX_M(g_str_int_umap_value_config, str_int_umap, before);
 
-    YAML::Node root = YAML::LoadFile("../bin/conf/log.yml");
+    YAML::Node root = YAML::LoadFile("../bin/conf/test.yml");
     zy::Config::LoadFromYaml(root);
     
 
@@ -126,11 +126,11 @@ public:
         return ss.str();
     }
 
-    // bool operator==(const Person& oth) const {
-    //     return m_name == oth.m_name
-    //         && m_age == oth.m_age
-    //         && m_sex == oth.m_sex;
-    // }
+    bool operator==(const Person& oth) const {
+        return m_name == oth.m_name
+            && m_age == oth.m_age
+            && m_sex == oth.m_sex;
+    }
 };
 
 //片特化自定义类的解析
@@ -186,16 +186,16 @@ void test_class() {
         ZY_LOG_INFO(ZY_LOG_ROOT()) <<  prefix << ": size=" << m.size(); \
     }
 
-    // g_person->addListener([](const Person& old_value, const Person& new_value){
-    //     ZY_LOG_INFO(ZY_LOG_ROOT()) << "old_value=" << old_value.toString()
-    //             << " new_value=" << new_value.toString();
-    // });
+    g_person->addListener([](const Person& old_value, const Person& new_value){
+        ZY_LOG_INFO(ZY_LOG_ROOT()) << "old_value=" << old_value.toString()
+                << " new_value=" << new_value.toString();
+    });
 
     XX_PM(g_person_map, "class.map before");
     ZY_LOG_INFO(ZY_LOG_ROOT()) << "before: " << g_person_vec_map->toString();
 
 
-    YAML::Node root = YAML::LoadFile("../bin/conf/log.yml");
+    YAML::Node root = YAML::LoadFile("../bin/conf/test.yml");
     zy::Config::LoadFromYaml(root);
 
     ZY_LOG_INFO(ZY_LOG_ROOT()) << "after: " << g_person->getValue().toString() << " - " << g_person->toString();

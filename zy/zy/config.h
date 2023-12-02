@@ -264,7 +264,8 @@ template<class T, class FromStr = LexicalCast<std::string, T>
 class ConfigVar : public ConfigVarBase {
 public:
     typedef std::shared_ptr<ConfigVar> ptr;
-
+    typedef std::function<void (const T& old_value, const T& new_value)> on_change_cb;
+    //通知函数原来的值和新的值
     ConfigVar(const std::string& name 
             , const T& default_value
             , const std::string& description = "")
@@ -299,10 +300,58 @@ public:
     }
 
     const T getValue() const { return m_val;}
-    void setValue(const T& v) { m_val = v;}
+
+    void setValue(const T& v) { 
+        if(v == m_val) {
+            return;
+        }
+        for(auto& i : m_cbs) {
+            i.second(m_val, v);
+        }
+        m_val = v;
+    }
+
     std::string getTypeName() const override { return typeid(T).name(); }
+
+    /**
+     * @brief 添加变化回调函数
+     * @return 返回该回调函数对应的唯一id,用于删除回调
+     */
+    uint64_t addListener(on_change_cb cb) {
+        static uint64_t s_fun_id = 0;
+        ++s_fun_id;
+        m_cbs[s_fun_id] = cb;
+        return s_fun_id;
+    }
+    /**
+     * @brief 删除回调函数
+     * @param[in] key 回调函数的唯一id
+     */
+    void delListener(uint64_t key) {
+        m_cbs.erase(key);
+    }
+
+    /**
+     * @brief 获取回调函数
+     * @param[in] key 回调函数的唯一id
+     * @return 如果存在返回对应的回调函数,否则返回nullptr
+     */
+    on_change_cb getListener(uint64_t key) {
+        auto it = m_cbs.find(key);
+        return it == m_cbs.end() ? nullptr : it->second;
+    }
+
+    /**
+     * @brief 清理所有的回调函数
+     */
+    void clearListener() {
+        m_cbs.clear();
+    }
+
 private:
     T m_val;
+    //变更回调函数组, uint64_t key,要求唯一，一般可以用hash
+    std::map<uint64_t, on_change_cb> m_cbs;
 };
 
 class Config {

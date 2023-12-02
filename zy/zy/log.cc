@@ -2,7 +2,9 @@
 #include <map>
 #include <iostream>
 #include <functional>
-
+#include "config.h"
+#include <time.h>
+#include <string.h>
 
 namespace zy {
 
@@ -83,7 +85,7 @@ class NameFormatItem : public LogFormatter::FormatItem {
 public:
 	NameFormatItem(const std::string& str = "") {}
 	void format(std::ostream& os, std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) override{
-		os << logger->getName();
+		os << event->getLogger()->getName();
 	}
 };
 
@@ -204,12 +206,16 @@ void Logger::delAppender(LogAppender::ptr appender) {
 }
 
 void Logger::log(LogLevel::Level level, const LogEvent::ptr event) {
-	if (level >= m_level) {
-		auto self = shared_from_this();
-		for (auto& i : m_appenders) {
-			i->log(self, level, event);
-		}
-	}
+    if(level >= m_level) {
+        auto self = shared_from_this();
+        if(!m_appenders.empty()) {
+            for(auto& i : m_appenders) {
+                i->log(self, level, event);
+            }
+        } else if(m_root) {
+            m_root->log(level, event);
+        }
+    }
 }
 
 void Logger::debug(LogEvent::ptr event) {
@@ -392,22 +398,129 @@ LoggerManager::LoggerManager() {
 
     //m_loggers[m_root->m_name] = m_root;
 
-    //init();
+    init();
 }
 
 Logger::ptr LoggerManager::getLogger(const std::string& name) {
     auto it = m_loggers.find(name);
-	return it == m_loggers.end() ? m_root : it->second;
-    // if(it != m_loggers.end()) {
-    //     return it->second;
-    // }
-
-    // Logger::ptr logger(new Logger(name));
-    // logger->m_root = m_root;
-    // m_loggers[name] = logger;
-    // return logger;
+    if(it != m_loggers.end()) {
+        return it->second;
+    }
+    Logger::ptr logger(new Logger(name));
+    logger->m_root = m_root;
+    m_loggers[name] = logger;
+    return logger;
 }
 
+struct LogAppenderDefine {
+    int type = 0; //1 File, 2 Stdout
+    LogLevel::Level level = LogLevel::UNKNOW;
+    std::string formatter;
+    std::string file;
+
+    bool operator==(const LogAppenderDefine& oth) const {
+        return type == oth.type
+            && level == oth.level
+            && formatter == oth.formatter
+            && file == oth.file;
+    }
+};
+
+struct LogDefine {
+    std::string name;
+    LogLevel::Level level = LogLevel::UNKNOW;
+    std::string formatter;
+    std::vector<LogAppenderDefine> appenders;
+
+    bool operator==(const LogDefine& oth) const {
+        return name == oth.name
+            && level == oth.level
+            && formatter == oth.formatter
+            && appenders == appenders;
+    }
+
+    bool operator<(const LogDefine& oth) const {
+        return name < oth.name;
+    }
+
+    bool isValid() const {
+        return !name.empty();
+    }
+};
+
+zy::ConfigVar<std::set<LogDefine> >::ptr g_log_defines =
+    zy::Config::Lookup("logs", std::set<LogDefine>(), "logs config");
+
+struct LogIniter {
+    LogIniter() {
+        // g_log_defines->addListener([](const std::set<LogDefine>& old_value,
+        //             const std::set<LogDefine>& new_value){
+        //     ZY_LOG_INFO(ZY_LOG_ROOT()) << "on_logger_conf_changed";
+        //     for(auto& i : new_value) {
+        //         auto it = old_value.find(i);
+        //         zy::Logger::ptr logger;
+        //         if(it == old_value.end()) {
+        //             //新增logger
+        //             logger = ZY_LOG_NAME(i.name);
+        //         } else {
+        //             if(!(i == *it)) {
+        //                 //修改的logger
+        //                 logger = ZY_LOG_NAME(i.name);
+        //             } else {
+        //                 continue;
+        //             }
+        //         }
+        //         logger->setLevel(i.level);
+        //         //std::cout << "** " << i.name << " level=" << i.level
+        //         //<< "  " << logger << std::endl;
+        //         if(!i.formatter.empty()) {
+        //             logger->setFormatter(i.formatter);
+        //         }
+
+        //         logger->clearAppenders();
+        //         for(auto& a : i.appenders) {
+        //             zy::LogAppender::ptr ap;
+        //             if(a.type == 1) {
+        //                 ap.reset(new FileLogAppender(a.file));
+        //             } else if(a.type == 2) {
+        //                 if(!zy::EnvMgr::GetInstance()->has("d")) {
+        //                     ap.reset(new StdoutLogAppender);
+        //                 } else {
+        //                     continue;
+        //                 }
+        //             }
+        //             ap->setLevel(a.level);
+        //             if(!a.formatter.empty()) {
+        //                 LogFormatter::ptr fmt(new LogFormatter(a.formatter));
+        //                 if(!fmt->isError()) {
+        //                     ap->setFormatter(fmt);
+        //                 } else {
+        //                     std::cout << "log.name=" << i.name << " appender type=" << a.type
+        //                               << " formatter=" << a.formatter << " is invalid" << std::endl;
+        //                 }
+        //             }
+        //             logger->addAppender(ap);
+        //         }
+        //     }
+
+        //     for(auto& i : old_value) {
+        //         auto it = new_value.find(i);
+        //         if(it == new_value.end()) {
+        //             //删除logger
+        //             auto logger = ZY_LOG_NAME(i.name);
+        //             logger->setLevel((LogLevel::Level)0);
+        //             logger->clearAppenders();
+        //         }
+        //     }
+        // });
+    }
+};
+
+
+static LogIniter __log_init;
+
+void LoggerManager::init() {
+}
 }
 
 

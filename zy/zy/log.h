@@ -37,16 +37,15 @@
 #define ZY_LOG_FMT_WARN(logger, fmt, ...)  ZY_LOG_FMT_LEVEL(logger, zy::LogLevel::WARN, fmt, __VA_ARGS__)
 #define ZY_LOG_FMT_ERROR(logger, fmt, ...) ZY_LOG_FMT_LEVEL(logger, zy::LogLevel::ERROR, fmt, __VA_ARGS__)
 #define ZY_LOG_FMT_FATAL(logger, fmt, ...) ZY_LOG_FMT_LEVEL(logger, zy::LogLevel::FATAL, fmt, __VA_ARGS__)
-//#define ZY_LOG_NAME(name) zy::LoggerMgr::GetInstance()->getLogger(name)
 
 #define ZY_LOG_ROOT() zy::LoggerMgr::GetInstance()->getRoot()
-
+#define ZY_LOG_NAME(name) zy::LoggerMgr::GetInstance()->getLogger(name)
 
 namespace zy {
 
 
 class Logger;
-
+class LoggerManager;
 //日志级别
 class LogLevel {
 public:
@@ -153,6 +152,7 @@ protected:
 
 //日志器
 class Logger : public std::enable_shared_from_this<Logger>{
+friend class LoggerManager;
 public:
 	typedef std::shared_ptr<Logger> ptr;
 		
@@ -176,6 +176,7 @@ private:
 	std::list<LogAppender::ptr> m_appenders; //Appender集合，用列表存储(list是双向链表)
 	LogLevel::Level m_level;//日志级别
 	LogFormatter::ptr m_formatter;
+	Logger::ptr m_root;
 };
 
 //输出到控制台的Appender
