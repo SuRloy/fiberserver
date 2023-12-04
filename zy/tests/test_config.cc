@@ -1,6 +1,7 @@
 #include "../zy/config.h"
 #include "../zy/log.h"
 #include <yaml-cpp/yaml.h>
+#include <iostream>
 
 //默认值
 zy::ConfigVar<int>::ptr g_int_value_config =
@@ -59,7 +60,7 @@ void print_yaml(const YAML::Node& node, int level) {
 
 void test_yaml() {
     //YAML::Node root = YAML::LoadFile("/home/ss/workspace/zy/bin/conf/log.yml"); 本地主机
-    YAML::Node root = YAML::LoadFile("../bin/conf/test.yml");
+    YAML::Node root = YAML::LoadFile("../bin/conf/log.yml");
     print_yaml(root, 0);
 }
 
@@ -203,11 +204,29 @@ void test_class() {
     ZY_LOG_INFO(ZY_LOG_ROOT()) << "after: " << g_person_vec_map->toString();
 }
 
+void test_log() {
+    static zy::Logger::ptr system_log = ZY_LOG_NAME("system");
+    ZY_LOG_INFO(system_log) << "hello system" << std::endl;
+    std::cout << zy::LoggerMgr::GetInstance()->toYamlString() << std::endl;
+    YAML::Node root = YAML::LoadFile("../bin/conf/log.yml");
+    zy::Config::LoadFromYaml(root);//触发配置变化->事件->log
+    std::cout << "=============" << std::endl;
+    std::cout << zy::LoggerMgr::GetInstance()->toYamlString() << std::endl;
+    std::cout << "=============" << std::endl;
+    std::cout << root << std::endl;
+    ZY_LOG_INFO(system_log) << "hello system" << std::endl;
+
+    // system_log->setFormatter("%d - %m%n");
+    // ZY_LOG_INFO(system_log) << "hello system" << std::endl;
+}
+
+
 int main (int argc, char** argv) {   
     // ZY_LOG_INFO(ZY_LOG_ROOT()) << g_int_value_config->getValue();
     // ZY_LOG_INFO(ZY_LOG_ROOT()) << g_float_value_config->toString();
     //test_yaml();
     //test_config();
-    test_class();
+    //test_class();
+    test_log();
     return 0;
 }
