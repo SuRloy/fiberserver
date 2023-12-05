@@ -63,41 +63,41 @@ include CMakeFiles/zy.dir/flags.make
 CMakeFiles/zy.dir/zy/log.cc.o: CMakeFiles/zy.dir/flags.make
 CMakeFiles/zy.dir/zy/log.cc.o: ../zy/log.cc
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/zouyang/webserver/zy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/zy.dir/zy/log.cc.o"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/zy.dir/zy/log.cc.o -c /home/zouyang/webserver/zy/zy/log.cc
+	/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"zy/log.cc\" $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/zy.dir/zy/log.cc.o -c /home/zouyang/webserver/zy/zy/log.cc
 
 CMakeFiles/zy.dir/zy/log.cc.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/zy.dir/zy/log.cc.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/zouyang/webserver/zy/zy/log.cc > CMakeFiles/zy.dir/zy/log.cc.i
+	/usr/bin/c++ $(CXX_DEFINES) -D__FILE__=\"zy/log.cc\" $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/zouyang/webserver/zy/zy/log.cc > CMakeFiles/zy.dir/zy/log.cc.i
 
 CMakeFiles/zy.dir/zy/log.cc.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/zy.dir/zy/log.cc.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/zouyang/webserver/zy/zy/log.cc -o CMakeFiles/zy.dir/zy/log.cc.s
+	/usr/bin/c++ $(CXX_DEFINES) -D__FILE__=\"zy/log.cc\" $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/zouyang/webserver/zy/zy/log.cc -o CMakeFiles/zy.dir/zy/log.cc.s
 
 CMakeFiles/zy.dir/zy/util.cc.o: CMakeFiles/zy.dir/flags.make
 CMakeFiles/zy.dir/zy/util.cc.o: ../zy/util.cc
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/zouyang/webserver/zy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/zy.dir/zy/util.cc.o"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/zy.dir/zy/util.cc.o -c /home/zouyang/webserver/zy/zy/util.cc
+	/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"zy/util.cc\" $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/zy.dir/zy/util.cc.o -c /home/zouyang/webserver/zy/zy/util.cc
 
 CMakeFiles/zy.dir/zy/util.cc.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/zy.dir/zy/util.cc.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/zouyang/webserver/zy/zy/util.cc > CMakeFiles/zy.dir/zy/util.cc.i
+	/usr/bin/c++ $(CXX_DEFINES) -D__FILE__=\"zy/util.cc\" $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/zouyang/webserver/zy/zy/util.cc > CMakeFiles/zy.dir/zy/util.cc.i
 
 CMakeFiles/zy.dir/zy/util.cc.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/zy.dir/zy/util.cc.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/zouyang/webserver/zy/zy/util.cc -o CMakeFiles/zy.dir/zy/util.cc.s
+	/usr/bin/c++ $(CXX_DEFINES) -D__FILE__=\"zy/util.cc\" $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/zouyang/webserver/zy/zy/util.cc -o CMakeFiles/zy.dir/zy/util.cc.s
 
 CMakeFiles/zy.dir/zy/config.cc.o: CMakeFiles/zy.dir/flags.make
 CMakeFiles/zy.dir/zy/config.cc.o: ../zy/config.cc
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/zouyang/webserver/zy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/zy.dir/zy/config.cc.o"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/zy.dir/zy/config.cc.o -c /home/zouyang/webserver/zy/zy/config.cc
+	/usr/bin/c++  $(CXX_DEFINES) -D__FILE__=\"zy/config.cc\" $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/zy.dir/zy/config.cc.o -c /home/zouyang/webserver/zy/zy/config.cc
 
 CMakeFiles/zy.dir/zy/config.cc.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/zy.dir/zy/config.cc.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/zouyang/webserver/zy/zy/config.cc > CMakeFiles/zy.dir/zy/config.cc.i
+	/usr/bin/c++ $(CXX_DEFINES) -D__FILE__=\"zy/config.cc\" $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/zouyang/webserver/zy/zy/config.cc > CMakeFiles/zy.dir/zy/config.cc.i
 
 CMakeFiles/zy.dir/zy/config.cc.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/zy.dir/zy/config.cc.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/zouyang/webserver/zy/zy/config.cc -o CMakeFiles/zy.dir/zy/config.cc.s
+	/usr/bin/c++ $(CXX_DEFINES) -D__FILE__=\"zy/config.cc\" $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/zouyang/webserver/zy/zy/config.cc -o CMakeFiles/zy.dir/zy/config.cc.s
 
 # Object files for target zy
 zy_OBJECTS = \

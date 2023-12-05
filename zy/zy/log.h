@@ -139,6 +139,7 @@ private:
 
 //日志输出地
 class LogAppender {
+friend class Logger;
 public:
 	typedef std::shared_ptr<LogAppender> ptr;//定义智能指针，支持自动回收，方便内存管理
     virtual ~LogAppender() {}
@@ -146,7 +147,7 @@ public:
 	virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level, const LogEvent::ptr event) = 0;//纯虚函数必须要有实现的子类	
 	
 	virtual std::string toYamlString() = 0;
-	void setFormatter(LogFormatter::ptr val) { m_formatter = val;}
+	void setFormatter(LogFormatter::ptr val);
 	LogFormatter::ptr getFormatter() const { return m_formatter;}
 	LogLevel::Level getLevel() const { return m_level;}
 	void setLevel(LogLevel::Level val) { m_level = val;}

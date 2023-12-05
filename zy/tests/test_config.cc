@@ -216,8 +216,8 @@ void test_log() {
     std::cout << root << std::endl;
     ZY_LOG_INFO(system_log) << "hello system" << std::endl;
 
-    // system_log->setFormatter("%d - %m%n");
-    // ZY_LOG_INFO(system_log) << "hello system" << std::endl;
+    system_log->setFormatter("%d - %m%n");
+    ZY_LOG_INFO(system_log) << "hello system" << std::endl;
 }
 
 

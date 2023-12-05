@@ -79,6 +79,16 @@ std::stringstream& LogEventWrap::getSS() {
 	return m_event->getSS();
 }
 
+void LogAppender::setFormatter(LogFormatter::ptr val) {
+    m_formatter = val;
+    if(m_formatter) {
+        m_hasFormatter = true;
+    } else {
+        m_hasFormatter = false;
+    }
+}
+
+
 class MessageFormatItem : public LogFormatter::FormatItem {
 public:
 	MessageFormatItem(const std::string& str = "") {}
@@ -213,15 +223,15 @@ Logger::Logger(const std::string& name)
 
 void Logger::setFormatter(LogFormatter::ptr val) {
     m_formatter = val;
-    // for(auto& i : m_appenders) {
-    //     if(!i->m_hasFormatter) {
-    //         i->m_formatter = m_formatter;
-    //     }
-    // }
+    for(auto& i : m_appenders) {
+        if(!i->m_hasFormatter) {
+            i->m_formatter = m_formatter;
+        }
+    }
 }
 
 void Logger::setFormatter(const std::string& val) {
-    std::cout << "---" << val << std::endl;
+    //std::cout << "---" << val << std::endl;
     zy::LogFormatter::ptr new_val(new zy::LogFormatter(val));
     if(new_val->isError()) {
         std::cout << "Logger setFormatter name=" << m_name
@@ -229,8 +239,8 @@ void Logger::setFormatter(const std::string& val) {
                   << std::endl;
         return;
     }
-    m_formatter = new_val;
-    //setFormatter(new_val);
+    //m_formatter = new_val;
+    setFormatter(new_val);
 }
 std::string Logger::toYamlString() {
     YAML::Node node;
@@ -249,13 +259,14 @@ std::string Logger::toYamlString() {
     ss << node;
     return ss.str();
 }
+
 LogFormatter::ptr Logger::getFormatter() {
     return m_formatter;
 }
 
 void Logger::addAppender(LogAppender::ptr appender) {
 	if (!appender->getFormatter()) {
-		appender->setFormatter(m_formatter);
+		appender->m_formatter = m_formatter;
 	}
 	m_appenders.push_back(appender);
 }
@@ -685,12 +696,12 @@ struct LogIniter {
                     ap->setLevel(a.level);
                     if(!a.formatter.empty()) {
                         LogFormatter::ptr fmt(new LogFormatter(a.formatter));
-                        // if(!fmt->isError()) {
-                        //     ap->setFormatter(fmt);
-                        // } else {
-                        //     std::cout << "log.name=" << i.name << " appender type=" << a.type
-                        //               << " formatter=" << a.formatter << " is invalid" << std::endl;
-                        // }
+                        if(!fmt->isError()) {
+                            ap->setFormatter(fmt);
+                        } else {
+                            std::cout << "log.name=" << i.name << " appender type=" << a.type
+                                      << " formatter=" << a.formatter << " is invalid" << std::endl;
+                        }
                     }
                     logger->addAppender(ap);
                 }
