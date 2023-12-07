@@ -31,9 +31,11 @@ public:
         const std::string& getName() const { return m_name;}
         const std::string& getDescription() const { return m_description;}
 
-        virtual std::string toString() = 0;//明文转换
-        virtual bool fromString(const std::string& val) = 0;//解析 初始化到自己的成员
+        //序列化和反序列化
+        virtual std::string toString() = 0;//明文转换为字符串
+        virtual bool fromString(const std::string& val) = 0;//解析 字符串转化为
         virtual std::string getTypeName() const = 0;
+
 protected:
     std::string m_name;
     std::string m_description;
@@ -398,7 +400,7 @@ public:
 
     static ConfigVarBase::ptr LookupBase(const std::string& name);
 private:
-    //静态成员在编译初始化时不知道哪个会在前面编译，会导致s_datas的内存不一定被分配出现错误
+    //(Critical)静态成员在编译初始化时不知道哪个会在前面编译，会导致s_datas的内存不一定被分配出现错误
     static ConfigVarMap& GetDatas() {
         static ConfigVarMap s_datas;
         return s_datas;

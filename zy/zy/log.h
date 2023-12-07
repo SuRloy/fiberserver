@@ -136,7 +136,6 @@ private:
 	bool m_error = false;
 };
 
-
 //日志输出地
 class LogAppender {
 friend class Logger;
@@ -152,12 +151,10 @@ public:
 	LogLevel::Level getLevel() const { return m_level;}
 	void setLevel(LogLevel::Level val) { m_level = val;}
 protected:
-	LogLevel::Level m_level = LogLevel::DEBUG;//针对哪些LEVEL作出记录(?)protected让子类可以使用到
+	LogLevel::Level m_level = LogLevel::DEBUG;
 	LogFormatter::ptr m_formatter;
     bool m_hasFormatter = false;// 是否有自己的日志格式器
 };
-
-
 
 //日志器
 class Logger : public std::enable_shared_from_this<Logger>{
@@ -194,6 +191,8 @@ private:
 	LogFormatter::ptr m_formatter;
 	Logger::ptr m_root;
 };
+
+
 
 //输出到控制台的Appender
 class StdoutLogAppender : public LogAppender {
