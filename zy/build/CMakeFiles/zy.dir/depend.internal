@@ -37,6 +37,7 @@ CMakeFiles/zy.dir/zy/config.cc.o
  /home/zouyang/webserver/zy/zy/config.h
  /home/zouyang/webserver/zy/zy/log.h
  /home/zouyang/webserver/zy/zy/singleton.h
+ /home/zouyang/webserver/zy/zy/thread.h
  /home/zouyang/webserver/zy/zy/util.h
 CMakeFiles/zy.dir/zy/log.cc.o
  /home/zouyang/app/local/include/yaml-cpp/binary.h
@@ -74,6 +75,7 @@ CMakeFiles/zy.dir/zy/log.cc.o
  /home/zouyang/webserver/zy/zy/log.cc
  /home/zouyang/webserver/zy/zy/log.h
  /home/zouyang/webserver/zy/zy/singleton.h
+ /home/zouyang/webserver/zy/zy/thread.h
  /home/zouyang/webserver/zy/zy/util.h
 CMakeFiles/zy.dir/zy/thread.cc.o
  /home/zouyang/webserver/zy/zy/log.h

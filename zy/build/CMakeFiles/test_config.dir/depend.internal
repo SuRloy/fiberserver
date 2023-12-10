@@ -37,4 +37,5 @@ CMakeFiles/test_config.dir/tests/test_config.cc.o
  /home/zouyang/webserver/zy/zy/config.h
  /home/zouyang/webserver/zy/zy/log.h
  /home/zouyang/webserver/zy/zy/singleton.h
+ /home/zouyang/webserver/zy/zy/thread.h
  /home/zouyang/webserver/zy/zy/util.h

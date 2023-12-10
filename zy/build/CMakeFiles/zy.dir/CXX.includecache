@@ -429,6 +429,8 @@ util.h
 /home/zouyang/webserver/zy/zy/util.h
 singleton.h
 /home/zouyang/webserver/zy/zy/singleton.h
+thread.h
+/home/zouyang/webserver/zy/zy/thread.h
 
 /home/zouyang/webserver/zy/zy/singleton.h
 

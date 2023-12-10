@@ -36,5 +36,6 @@ CMakeFiles/test_config.dir/tests/test_config.cc.o: ../tests/test_config.cc
 CMakeFiles/test_config.dir/tests/test_config.cc.o: ../zy/config.h
 CMakeFiles/test_config.dir/tests/test_config.cc.o: ../zy/log.h
 CMakeFiles/test_config.dir/tests/test_config.cc.o: ../zy/singleton.h
+CMakeFiles/test_config.dir/tests/test_config.cc.o: ../zy/thread.h
 CMakeFiles/test_config.dir/tests/test_config.cc.o: ../zy/util.h
 

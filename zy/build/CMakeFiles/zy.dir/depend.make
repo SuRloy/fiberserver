@@ -36,6 +36,7 @@ CMakeFiles/zy.dir/zy/config.cc.o: ../zy/config.cc
 CMakeFiles/zy.dir/zy/config.cc.o: ../zy/config.h
 CMakeFiles/zy.dir/zy/config.cc.o: ../zy/log.h
 CMakeFiles/zy.dir/zy/config.cc.o: ../zy/singleton.h
+CMakeFiles/zy.dir/zy/config.cc.o: ../zy/thread.h
 CMakeFiles/zy.dir/zy/config.cc.o: ../zy/util.h
 
 CMakeFiles/zy.dir/zy/log.cc.o: /home/zouyang/app/local/include/yaml-cpp/binary.h
@@ -73,6 +74,7 @@ CMakeFiles/zy.dir/zy/log.cc.o: ../zy/config.h
 CMakeFiles/zy.dir/zy/log.cc.o: ../zy/log.cc
 CMakeFiles/zy.dir/zy/log.cc.o: ../zy/log.h
 CMakeFiles/zy.dir/zy/log.cc.o: ../zy/singleton.h
+CMakeFiles/zy.dir/zy/log.cc.o: ../zy/thread.h
 CMakeFiles/zy.dir/zy/log.cc.o: ../zy/util.h
 
 CMakeFiles/zy.dir/zy/thread.cc.o: ../zy/log.h
