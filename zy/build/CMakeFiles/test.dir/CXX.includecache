@@ -59,6 +59,8 @@ semaphore.h
 -
 stdint.h
 -
+atomic
+-
 
 /home/zouyang/webserver/zy/zy/util.h
 pthread.h

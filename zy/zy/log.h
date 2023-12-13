@@ -142,7 +142,7 @@ class LogAppender {
 friend class Logger;
 public:
 	typedef std::shared_ptr<LogAppender> ptr;//定义智能指针，支持自动回收，方便内存管理
-	typedef Mutex MutexType;
+	typedef Spinlock MutexType;
     virtual ~LogAppender() {}
 
 	virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level, const LogEvent::ptr event) = 0;//纯虚函数必须要有实现的子类	
@@ -165,7 +165,7 @@ class Logger : public std::enable_shared_from_this<Logger>{
 friend class LoggerManager;
 public:
 	typedef std::shared_ptr<Logger> ptr;
-	typedef Mutex MutexType;
+	typedef Spinlock MutexType;
 		
 	Logger(const std::string& name = "root");
 	void log(LogLevel::Level level, const LogEvent::ptr event);
@@ -223,11 +223,12 @@ public:
 private:
 	std::string m_filename;
 	std::ofstream m_filestream;
+	uint64_t m_lastTime = 0;
 };
 
 class LoggerManager {
 public:
-	typedef Mutex MutexType;
+	typedef Spinlock MutexType;
 	LoggerManager();
 	Logger::ptr getLogger(const std::string& name);
 	

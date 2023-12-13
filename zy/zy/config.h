@@ -16,6 +16,9 @@
 #include <unordered_set>
 #include <functional>
 
+#include "thread.h"
+#include "log.h"
+
 namespace zy {
 
 class ConfigVarBase {
@@ -265,6 +268,7 @@ template<class T, class FromStr = LexicalCast<std::string, T>
                 , class ToStr = LexicalCast<T, std::string> >
 class ConfigVar : public ConfigVarBase {
 public:
+    typedef RWMutex RWMutexType;
     typedef std::shared_ptr<ConfigVar> ptr;
     typedef std::function<void (const T& old_value, const T& new_value)> on_change_cb;
     //通知函数原来的值和新的值
@@ -275,11 +279,13 @@ public:
         , m_val(default_value) {
 
         }
+
     //override c++11 让编译器检测这个函数确实从父类继承过来
     std::string toString() override{
         try {
             //类型转换 T->string
             //return boost::lexical_cast<std::string>(m_val);
+            RWMutexType::ReadLock lock(m_mutex);
             return ToStr() (m_val);
         } catch (std::exception& e) {
             ZY_LOG_ERROR(ZY_LOG_ROOT()) << "ConfigVar::toString exception"
@@ -301,15 +307,22 @@ public:
         return false;
     }
 
-    const T getValue() const { return m_val;}
+    const T getValue() {
+        RWMutexType::ReadLock rdlock(m_mutex);
+        return m_val;
+    }
 
     void setValue(const T& v) { 
-        if(v == m_val) {
-            return;
+        {//加局部域，出了这个域锁就失效了
+            RWMutexType::ReadLock lock(m_mutex);
+            if(v == m_val) {
+                return;
+            }
+            for(auto& i : m_cbs) {
+                i.second(m_val, v);
+            }
         }
-        for(auto& i : m_cbs) {
-            i.second(m_val, v);
-        }
+        RWMutexType::WriteLock lock(m_mutex);
         m_val = v;
     }
 
@@ -321,15 +334,18 @@ public:
      */
     uint64_t addListener(on_change_cb cb) {
         static uint64_t s_fun_id = 0;
+        RWMutexType::WriteLock lock(m_mutex);
         ++s_fun_id;
         m_cbs[s_fun_id] = cb;
         return s_fun_id;
     }
+
     /**
      * @brief 删除回调函数
      * @param[in] key 回调函数的唯一id
      */
     void delListener(uint64_t key) {
+        RWMutexType::WriteLock lock(m_mutex);
         m_cbs.erase(key);
     }
 
@@ -339,6 +355,7 @@ public:
      * @return 如果存在返回对应的回调函数,否则返回nullptr
      */
     on_change_cb getListener(uint64_t key) {
+        RWMutexType::ReadLock lock(m_mutex);
         auto it = m_cbs.find(key);
         return it == m_cbs.end() ? nullptr : it->second;
     }
@@ -347,10 +364,12 @@ public:
      * @brief 清理所有的回调函数
      */
     void clearListener() {
+        RWMutexType::WriteLock lock(m_mutex);
         m_cbs.clear();
     }
 
 private:
+    RWMutexType m_mutex;
     T m_val;
     //变更回调函数组, uint64_t key,要求唯一，一般可以用hash
     std::map<uint64_t, on_change_cb> m_cbs;
@@ -359,13 +378,16 @@ private:
 class Config {
 public:
     typedef std::map<std::string, ConfigVarBase::ptr> ConfigVarMap;
+    typedef RWMutex RWMutexType;
 
     template<class T>
     static typename ConfigVar<T>::ptr Lookup(const std::string& name,
             const T& default_value, const std::string& description = "") {
+        RWMutexType::WriteLock lock(GetMutex());        
         auto it = GetDatas().find(name);
         if (it != GetDatas().end()) {
-            auto tmp = Lookup<T>(name);
+            auto tmp = std::dynamic_pointer_cast<ConfigVar<T>>(it->second); 
+            //std::dynamic_pointer_cast<ConfigVar<T>>(it->second); 
             if (tmp) {
                 ZY_LOG_INFO(ZY_LOG_ROOT()) << "Lookup name=" << name << "exists";
                 return tmp;
@@ -389,6 +411,7 @@ public:
 
     template<class T>
     static typename ConfigVar<T>::ptr Lookup(const std::string& name) {
+        RWMutexType::ReadLock lock(GetMutex());
         auto it = GetDatas().find(name);
         if (it == GetDatas().end()) {
             return nullptr;
@@ -397,13 +420,19 @@ public:
     }//查找
 
     static void LoadFromYaml(const YAML::Node& root);
-
     static ConfigVarBase::ptr LookupBase(const std::string& name);
+
+    static void Visit(std::function<void(ConfigVarBase::ptr)> cb);
 private:
     //(Critical)静态成员在编译初始化时不知道哪个会在前面编译，会导致s_datas的内存不一定被分配出现错误
     static ConfigVarMap& GetDatas() {
         static ConfigVarMap s_datas;
         return s_datas;
+    }
+    
+    static RWMutexType& GetMutex() {
+        static RWMutexType s_mutex;
+        return s_mutex;
     }
 
 };

@@ -67,11 +67,11 @@ Thread::Thread(std::function<void()> cb, const std::string& name)
 
 Thread::~Thread() {
     if(m_thread) {
-        pthread_detach(m_thread);
+        pthread_detach(m_thread);//线程分离,结束时会自动回收其资源
     }
 }
 
-//join 的作用是主线程等待被调用 join 的线程执行完毕。
+//join 的作用是主线程等待被调用 join 的线程执行完毕。pthread_join需要阻塞等待线程结束并获取其[退出状态]
 //这是一种协同的线程管理方式，确保主线程在子线程结束之前不会继续执行
 void Thread::join() {
     if(m_thread) {

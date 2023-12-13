@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdint.h>
+#include <atomic>
 
 namespace zy {
 
@@ -197,6 +198,55 @@ public:
     void wrlock() {}
     void unlock() {}
 };
+
+//一般来说，在低争用和短暂等待的情况下，使用自旋锁可能更为合适。在高争用或长时间等待的情况下，使用互斥锁可能更为合适。
+//写日志的场景下使用自旋锁效率最高
+//当一个线程尝试锁住已经被其他线程锁住的 spinlock 时，它并不会被阻塞，而是会一直循环（自旋）等待直到成功获得锁。
+class Spinlock {
+public:
+    typedef ScopedLockImpl<Spinlock> Lock;
+    Spinlock() {
+        pthread_spin_init(&m_mutex, 0);
+    }
+
+    ~Spinlock() {
+        pthread_spin_destroy(&m_mutex);
+    }
+
+    void lock() {
+        pthread_spin_lock(&m_mutex);
+    }
+
+    void unlock() {
+        pthread_spin_unlock(&m_mutex);
+    }
+
+
+private:
+    pthread_spinlock_t m_mutex;
+};
+//TODO:需要去理解CAS机制  效果不如Spinlock
+class CASlock {
+public:
+    typedef ScopedLockImpl<CASlock> Lock;
+    CASlock() {
+        m_mutex.clear();
+    }
+
+    ~CASlock() {
+    }
+
+    void lock() {
+        while(std::atomic_flag_test_and_set_explicit(&m_mutex, std::memory_order_acquire));
+    }
+
+    void unlock() {
+        std::atomic_flag_clear_explicit(&m_mutex, std::memory_order_release);
+    }
+private:
+    volatile std::atomic_flag m_mutex;
+};
+
 
 class Thread {
 public:

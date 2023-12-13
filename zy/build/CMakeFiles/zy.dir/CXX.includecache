@@ -387,6 +387,10 @@ unordered_set
 -
 functional
 -
+thread.h
+/home/zouyang/webserver/zy/zy/thread.h
+log.h
+/home/zouyang/webserver/zy/zy/log.h
 
 /home/zouyang/webserver/zy/zy/log.cc
 log.h
@@ -452,6 +456,8 @@ pthread.h
 semaphore.h
 -
 stdint.h
+-
+atomic
 -
 
 /home/zouyang/webserver/zy/zy/util.cc

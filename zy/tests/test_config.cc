@@ -7,8 +7,8 @@
 zy::ConfigVar<int>::ptr g_int_value_config =
     zy::Config::Lookup("system.port", (int)8080, "system port"); 
 
-// zy::ConfigVar<float>::ptr g_int_valuex_config =
-//     zy::Config::Lookup("system.port", (float)8080, "system port"); 
+zy::ConfigVar<float>::ptr g_int_valuex_config =
+    zy::Config::Lookup("system.port", (float)8080, "system port"); 
 
 zy::ConfigVar<float>::ptr g_float_value_config =
     zy::Config::Lookup("system.value", (float)10.2f, "system value"); 
@@ -228,5 +228,12 @@ int main (int argc, char** argv) {
     //test_config();
     //test_class();
     test_log();
+    zy::Config::Visit([](zy::ConfigVarBase::ptr var) {
+        ZY_LOG_INFO(ZY_LOG_ROOT()) << "name=" << var->getName()
+                << " description=" << var->getDescription()
+                << " typename=" << var->getTypeName()
+                << " value=" << var->toString();
+    });
+
     return 0;
 }
