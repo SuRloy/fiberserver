@@ -1,7 +1,7 @@
 #include <iostream>
 #include <thread>
-#include "../zy/log.h"
-#include "../zy/util.h"
+#include "zy/log.h"
+#include "zy/util.h"
 
 int main(int argc, char** argv) {
 	zy::Logger::ptr logger(new zy::Logger);

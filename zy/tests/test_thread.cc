@@ -1,4 +1,4 @@
-#include "../zy/zy.h"
+#include "zy/zy.h"
 #include <unistd.h>
 
 zy::Logger::ptr g_logger = ZY_LOG_ROOT();
@@ -50,11 +50,6 @@ int main(int argc, char** argv) {
     ZY_LOG_INFO(g_logger) << "thread test end";
     ZY_LOG_INFO(g_logger) << "count=" << count;
 
-    zy::Config::Visit([](zy::ConfigVarBase::ptr var) {
-        ZY_LOG_INFO(g_logger) << "name=" << var->getName()
-                << " description=" << var->getDescription()
-                << " typename=" << var->getTypeName()
-                << " value=" << var->toString();
-    });
+
     return 0;
 }

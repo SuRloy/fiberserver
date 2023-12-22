@@ -1,5 +1,5 @@
-#include "../zy/config.h"
-#include "../zy/log.h"
+#include "zy/config.h"
+#include "zy/log.h"
 #include <yaml-cpp/yaml.h>
 #include <iostream>
 

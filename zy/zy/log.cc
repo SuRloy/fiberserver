@@ -467,6 +467,7 @@ void LogFormatter::init() {
 				}
 			}
 		}
+        
  		if(fmt_status == 0) {
             if(!nstr.empty()) {
                 vec.push_back(std::make_tuple(nstr, std::string(), 0));
