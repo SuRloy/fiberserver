@@ -1,1 +1,0 @@
-/usr/bin/c++  -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -rdynamic CMakeFiles/test.dir/tests/test.cc.o -o zy/bin/test  -Wl,-rpath,/home/ss/workspace/zy/lib zy/lib/libzy.so 
