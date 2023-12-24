@@ -18,7 +18,8 @@ public:
         HOLD,
         EXEC,
         TERM,
-        READY
+        READY,
+        EXCEPT
     };
 private:
     //线程变为主协程
@@ -33,6 +34,7 @@ public:
     void swapIn();//切换到当前协程执行
     void swapOut();//切换到后台执行
 
+    uint64_t getId() const { return m_id;}
 public:
     //设置当前协程
     static void SetThis(Fiber* f);
@@ -47,6 +49,7 @@ public:
 
     static void Mainfunc();
 
+    static uint64_t GetFiberId();
 private:
     uint64_t m_id;
     uint32_t m_stacksize;

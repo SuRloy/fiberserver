@@ -1,1 +1,0 @@
-/usr/bin/g++ -fPIC  -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -Wno-builtin-macro-redefined -g -shared -Wl,-soname,libzy.so -o ../lib/libzy.so CMakeFiles/zy.dir/zy/log.cc.o CMakeFiles/zy.dir/zy/util.cc.o CMakeFiles/zy.dir/zy/config.cc.o CMakeFiles/zy.dir/zy/thread.cc.o   -L/home/zouyang/app/local/lib  -L/usr/local/lib 

@@ -18,7 +18,7 @@
 #define ZY_LOG_LEVEL(logger, level) \
 	if (logger->getLevel() <= level) \
 		zy::LogEventWrap(zy::LogEvent::ptr(new zy::LogEvent(logger, level, \
-			__FILE__, __LINE__, 0,zy::GetThreadId(), \
+			__FILE__, __LINE__, 0, zy::GetThreadId(), \
 			zy::GetFiberId(), time(0)))).getSS()
 
 #define ZY_LOG_DEBUG(logger) ZY_LOG_LEVEL(logger, zy::LogLevel::DEBUG)
