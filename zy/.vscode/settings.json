@@ -64,6 +64,8 @@
         "typeinfo": "cpp",
         "valarray": "cpp",
         "optional": "cpp",
-        "source_location": "cpp"
+        "source_location": "cpp",
+        "condition_variable": "cpp",
+        "mutex": "cpp"
     }
 }

@@ -51,8 +51,8 @@ public:
 
     static uint64_t GetFiberId();
 private:
-    uint64_t m_id;
-    uint32_t m_stacksize;
+    uint64_t m_id = 0;
+    uint32_t m_stacksize = 0;
     State m_state = INIT;
 
     ucontext_t m_ctx;

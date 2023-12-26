@@ -60,9 +60,8 @@ Fiber::Fiber(std::function<void()> cb, size_t stacksize)
     if (getcontext(&m_ctx)) {
         ZY_ASSERT2(false, "getcontext");
     }
-    //m_ctx.uc_link = nullptr;
-    //我直接在带参数的构造函数内，把uc_link指向&t_threadFiber->m_ctx
-    m_ctx.uc_link = &t_threadFiber->m_ctx;
+    m_ctx.uc_link = nullptr;
+    //m_ctx.uc_link = &t_threadFiber->m_ctx;
     m_ctx.uc_stack.ss_sp = m_stack;
     m_ctx.uc_stack.ss_size = m_stacksize;
 
@@ -155,6 +154,7 @@ void Fiber::YieldToHold() {
 uint64_t Fiber::TotalFibers() {
     return s_fiber_count;
 }
+
 void Fiber::Mainfunc() {
     Fiber::ptr cur = GetThis();
     ZY_ASSERT(cur);
@@ -169,6 +169,12 @@ void Fiber::Mainfunc() {
         cur->m_state = EXCEPT;
         ZY_LOG_ERROR(g_logger) << "Fiber Except: ";
     }
+    
+    auto raw_ptr = cur.get();
+    cur.reset();
+    raw_ptr->swapOut();
+
+    ZY_ASSERT2(false, "never reach");
 }
 
 }

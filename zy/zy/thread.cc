@@ -1,5 +1,6 @@
 #include "thread.h"
 #include "log.h"
+#include "util.h"
 
 namespace zy {
 //static thread_local 通常用于修饰静态变量，以便每个线程都有一个独立的静态变量实例
@@ -29,8 +30,6 @@ void Semaphore::notify() {
         throw std::logic_error("sem_post error");
     }
 }
-
-
 
 Thread* Thread::GetThis() {
     return t_thread;
