@@ -14,6 +14,8 @@ CXX_INCLUDES = -I/home/zouyang/webserver/zy/. -I/home/zouyang/app/local/include
 
 # Custom defines: CMakeFiles/zy.dir/zy/config.cc.o_DEFINES = __FILE__="zy/config.cc"
 
+# Custom defines: CMakeFiles/zy.dir/zy/scheduler.cc.o_DEFINES = __FILE__="zy/scheduler.cc"
+
 # Custom defines: CMakeFiles/zy.dir/zy/thread.cc.o_DEFINES = __FILE__="zy/thread.cc"
 
 # Custom defines: CMakeFiles/zy.dir/zy/fiber.cc.o_DEFINES = __FILE__="zy/fiber.cc"

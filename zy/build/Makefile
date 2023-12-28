@@ -114,6 +114,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named test_scheduler
+
+# Build rule for target.
+test_scheduler: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 test_scheduler
+.PHONY : test_scheduler
+
+# fast build rule for target.
+test_scheduler/fast:
+	$(MAKE) -f CMakeFiles/test_scheduler.dir/build.make CMakeFiles/test_scheduler.dir/build
+.PHONY : test_scheduler/fast
+
+#=============================================================================
 # Target rules for targets named test_fiber
 
 # Build rule for target.
@@ -272,6 +285,33 @@ tests/test_fiber.cc.s:
 	$(MAKE) -f CMakeFiles/test_fiber.dir/build.make CMakeFiles/test_fiber.dir/tests/test_fiber.cc.s
 .PHONY : tests/test_fiber.cc.s
 
+tests/test_scheduler.o: tests/test_scheduler.cc.o
+
+.PHONY : tests/test_scheduler.o
+
+# target to build an object file
+tests/test_scheduler.cc.o:
+	$(MAKE) -f CMakeFiles/test_scheduler.dir/build.make CMakeFiles/test_scheduler.dir/tests/test_scheduler.cc.o
+.PHONY : tests/test_scheduler.cc.o
+
+tests/test_scheduler.i: tests/test_scheduler.cc.i
+
+.PHONY : tests/test_scheduler.i
+
+# target to preprocess a source file
+tests/test_scheduler.cc.i:
+	$(MAKE) -f CMakeFiles/test_scheduler.dir/build.make CMakeFiles/test_scheduler.dir/tests/test_scheduler.cc.i
+.PHONY : tests/test_scheduler.cc.i
+
+tests/test_scheduler.s: tests/test_scheduler.cc.s
+
+.PHONY : tests/test_scheduler.s
+
+# target to generate assembly for a file
+tests/test_scheduler.cc.s:
+	$(MAKE) -f CMakeFiles/test_scheduler.dir/build.make CMakeFiles/test_scheduler.dir/tests/test_scheduler.cc.s
+.PHONY : tests/test_scheduler.cc.s
+
 tests/test_thread.o: tests/test_thread.cc.o
 
 .PHONY : tests/test_thread.o
@@ -407,6 +447,33 @@ zy/log.cc.s:
 	$(MAKE) -f CMakeFiles/zy.dir/build.make CMakeFiles/zy.dir/zy/log.cc.s
 .PHONY : zy/log.cc.s
 
+zy/scheduler.o: zy/scheduler.cc.o
+
+.PHONY : zy/scheduler.o
+
+# target to build an object file
+zy/scheduler.cc.o:
+	$(MAKE) -f CMakeFiles/zy.dir/build.make CMakeFiles/zy.dir/zy/scheduler.cc.o
+.PHONY : zy/scheduler.cc.o
+
+zy/scheduler.i: zy/scheduler.cc.i
+
+.PHONY : zy/scheduler.i
+
+# target to preprocess a source file
+zy/scheduler.cc.i:
+	$(MAKE) -f CMakeFiles/zy.dir/build.make CMakeFiles/zy.dir/zy/scheduler.cc.i
+.PHONY : zy/scheduler.cc.i
+
+zy/scheduler.s: zy/scheduler.cc.s
+
+.PHONY : zy/scheduler.s
+
+# target to generate assembly for a file
+zy/scheduler.cc.s:
+	$(MAKE) -f CMakeFiles/zy.dir/build.make CMakeFiles/zy.dir/zy/scheduler.cc.s
+.PHONY : zy/scheduler.cc.s
+
 zy/thread.o: zy/thread.cc.o
 
 .PHONY : zy/thread.o
@@ -467,6 +534,7 @@ help:
 	@echo "... all (the default if no target is provided)"
 	@echo "... clean"
 	@echo "... depend"
+	@echo "... test_scheduler"
 	@echo "... test_fiber"
 	@echo "... rebuild_cache"
 	@echo "... test_util"
@@ -484,6 +552,9 @@ help:
 	@echo "... tests/test_fiber.o"
 	@echo "... tests/test_fiber.i"
 	@echo "... tests/test_fiber.s"
+	@echo "... tests/test_scheduler.o"
+	@echo "... tests/test_scheduler.i"
+	@echo "... tests/test_scheduler.s"
 	@echo "... tests/test_thread.o"
 	@echo "... tests/test_thread.i"
 	@echo "... tests/test_thread.s"
@@ -499,6 +570,9 @@ help:
 	@echo "... zy/log.o"
 	@echo "... zy/log.i"
 	@echo "... zy/log.s"
+	@echo "... zy/scheduler.o"
+	@echo "... zy/scheduler.i"
+	@echo "... zy/scheduler.s"
 	@echo "... zy/thread.o"
 	@echo "... zy/thread.i"
 	@echo "... zy/thread.s"

@@ -75,6 +75,7 @@ CMakeFiles/zy.dir/zy/fiber.cc.o: ../zy/fiber.cc
 CMakeFiles/zy.dir/zy/fiber.cc.o: ../zy/fiber.h
 CMakeFiles/zy.dir/zy/fiber.cc.o: ../zy/log.h
 CMakeFiles/zy.dir/zy/fiber.cc.o: ../zy/macro.h
+CMakeFiles/zy.dir/zy/fiber.cc.o: ../zy/scheduler.h
 CMakeFiles/zy.dir/zy/fiber.cc.o: ../zy/singleton.h
 CMakeFiles/zy.dir/zy/fiber.cc.o: ../zy/thread.h
 CMakeFiles/zy.dir/zy/fiber.cc.o: ../zy/util.h
@@ -116,6 +117,15 @@ CMakeFiles/zy.dir/zy/log.cc.o: ../zy/log.h
 CMakeFiles/zy.dir/zy/log.cc.o: ../zy/singleton.h
 CMakeFiles/zy.dir/zy/log.cc.o: ../zy/thread.h
 CMakeFiles/zy.dir/zy/log.cc.o: ../zy/util.h
+
+CMakeFiles/zy.dir/zy/scheduler.cc.o: ../zy/fiber.h
+CMakeFiles/zy.dir/zy/scheduler.cc.o: ../zy/log.h
+CMakeFiles/zy.dir/zy/scheduler.cc.o: ../zy/macro.h
+CMakeFiles/zy.dir/zy/scheduler.cc.o: ../zy/scheduler.cc
+CMakeFiles/zy.dir/zy/scheduler.cc.o: ../zy/scheduler.h
+CMakeFiles/zy.dir/zy/scheduler.cc.o: ../zy/singleton.h
+CMakeFiles/zy.dir/zy/scheduler.cc.o: ../zy/thread.h
+CMakeFiles/zy.dir/zy/scheduler.cc.o: ../zy/util.h
 
 CMakeFiles/zy.dir/zy/thread.cc.o: ../zy/log.h
 CMakeFiles/zy.dir/zy/thread.cc.o: ../zy/singleton.h

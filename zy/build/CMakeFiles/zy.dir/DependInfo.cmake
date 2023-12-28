@@ -7,6 +7,7 @@ set(CMAKE_DEPENDS_CHECK_CXX
   "/home/zouyang/webserver/zy/zy/config.cc" "/home/zouyang/webserver/zy/build/CMakeFiles/zy.dir/zy/config.cc.o"
   "/home/zouyang/webserver/zy/zy/fiber.cc" "/home/zouyang/webserver/zy/build/CMakeFiles/zy.dir/zy/fiber.cc.o"
   "/home/zouyang/webserver/zy/zy/log.cc" "/home/zouyang/webserver/zy/build/CMakeFiles/zy.dir/zy/log.cc.o"
+  "/home/zouyang/webserver/zy/zy/scheduler.cc" "/home/zouyang/webserver/zy/build/CMakeFiles/zy.dir/zy/scheduler.cc.o"
   "/home/zouyang/webserver/zy/zy/thread.cc" "/home/zouyang/webserver/zy/build/CMakeFiles/zy.dir/zy/thread.cc.o"
   "/home/zouyang/webserver/zy/zy/util.cc" "/home/zouyang/webserver/zy/build/CMakeFiles/zy.dir/zy/util.cc.o"
   )

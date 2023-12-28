@@ -2,6 +2,7 @@
 #include "config.h"
 #include "macro.h"
 #include "log.h"
+#include "scheduler.h"
 #include <atomic>
 
 namespace zy {
@@ -106,20 +107,28 @@ void Fiber::reset(std::function<void()> cb) {
     makecontext(&m_ctx, &Fiber::Mainfunc, 0);
     m_state = INIT;
 }
+
+void Fiber::call() {
+    m_state = EXEC;
+    ZY_LOG_ERROR(g_logger) << getId();
+    if (swapcontext(&t_threadFiber->m_ctx, &m_ctx)) {
+        ZY_ASSERT2(false, "swapcontext");
+    }
+}
 //切换到当前协程执行
 void Fiber::swapIn() {
     SetThis(this);
     ZY_ASSERT(m_state != EXEC);
     m_state = EXEC;
-    if (swapcontext(&t_threadFiber->m_ctx, &m_ctx)) {
+    if (swapcontext(&Scheduler::GetMainFiber()->m_ctx, &m_ctx)) {
         ZY_ASSERT2(false, "swapcontext");
     }
 }
 
 //切换到后台执行
 void Fiber::swapOut() {
-    SetThis(t_threadFiber.get());
-    if (swapcontext(&m_ctx, &t_threadFiber->m_ctx)) {
+    SetThis(Scheduler::GetMainFiber());
+    if (swapcontext(&m_ctx, &Scheduler::GetMainFiber()->m_ctx)) {
         ZY_ASSERT2(false, "swapcontext");
     }
 }
@@ -128,7 +137,7 @@ void Fiber::swapOut() {
 void Fiber::SetThis(Fiber* f) {
     t_fiber = f;
 }
-//程序拿到自己的协程
+//程序拿到自己的协程,没有协程会新建一个协程
 Fiber::ptr Fiber::GetThis() {
     if (t_fiber) {
         return t_fiber->shared_from_this();
@@ -157,6 +166,7 @@ uint64_t Fiber::TotalFibers() {
 
 void Fiber::Mainfunc() {
     Fiber::ptr cur = GetThis();
+    //Fiber::ptr cur = SetThis(this);
     ZY_ASSERT(cur);
     try {
         cur->m_cb();
@@ -164,17 +174,23 @@ void Fiber::Mainfunc() {
         cur->m_state = TERM;
     } catch (std::exception& ex) {
         cur->m_state = EXCEPT;
-        ZY_LOG_ERROR(g_logger) << "Fiber Except: " << ex.what();
+        ZY_LOG_ERROR(g_logger) << "Fiber Except: " << ex.what()
+            << " fiber_id=" << cur->getId()
+            << std::endl
+            << zy::BacktraceToString();
     } catch (...) {
         cur->m_state = EXCEPT;
-        ZY_LOG_ERROR(g_logger) << "Fiber Except: ";
+        ZY_LOG_ERROR(g_logger) << "Fiber Except: "
+            << " fiber_id=" << cur->getId()
+            << std::endl
+            << zy::BacktraceToString();
     }
     
     auto raw_ptr = cur.get();
     cur.reset();
     raw_ptr->swapOut();
 
-    ZY_ASSERT2(false, "never reach");
+    ZY_ASSERT2(false, "never reach fiber_id=" + std::to_string(raw_ptr->getId()));
 }
 
 }

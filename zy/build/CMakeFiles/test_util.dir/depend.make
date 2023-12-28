@@ -5,6 +5,7 @@ CMakeFiles/test_util.dir/tests/test_util.cc.o: ../zy/config.h
 CMakeFiles/test_util.dir/tests/test_util.cc.o: ../zy/fiber.h
 CMakeFiles/test_util.dir/tests/test_util.cc.o: ../zy/log.h
 CMakeFiles/test_util.dir/tests/test_util.cc.o: ../zy/macro.h
+CMakeFiles/test_util.dir/tests/test_util.cc.o: ../zy/scheduler.h
 CMakeFiles/test_util.dir/tests/test_util.cc.o: ../zy/singleton.h
 CMakeFiles/test_util.dir/tests/test_util.cc.o: ../zy/thread.h
 CMakeFiles/test_util.dir/tests/test_util.cc.o: ../zy/util.h

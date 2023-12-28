@@ -5,6 +5,7 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: ../zy/config.h
 CMakeFiles/test_thread.dir/tests/test_thread.cc.o: ../zy/fiber.h
 CMakeFiles/test_thread.dir/tests/test_thread.cc.o: ../zy/log.h
 CMakeFiles/test_thread.dir/tests/test_thread.cc.o: ../zy/macro.h
+CMakeFiles/test_thread.dir/tests/test_thread.cc.o: ../zy/scheduler.h
 CMakeFiles/test_thread.dir/tests/test_thread.cc.o: ../zy/singleton.h
 CMakeFiles/test_thread.dir/tests/test_thread.cc.o: ../zy/thread.h
 CMakeFiles/test_thread.dir/tests/test_thread.cc.o: ../zy/util.h

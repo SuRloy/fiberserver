@@ -56,6 +56,7 @@ CMAKE_BINARY_DIR = /home/zouyang/webserver/zy/build
 # Directory level rules for the build root directory
 
 # The main recursive "all" target.
+all: CMakeFiles/test_scheduler.dir/all
 all: CMakeFiles/test_fiber.dir/all
 all: CMakeFiles/test_util.dir/all
 all: CMakeFiles/test_thread.dir/all
@@ -71,6 +72,7 @@ preinstall:
 .PHONY : preinstall
 
 # The main recursive "clean" target.
+clean: CMakeFiles/test_scheduler.dir/clean
 clean: CMakeFiles/test_fiber.dir/clean
 clean: CMakeFiles/test_util.dir/clean
 clean: CMakeFiles/test_thread.dir/clean
@@ -79,6 +81,33 @@ clean: CMakeFiles/test_config.dir/clean
 clean: CMakeFiles/zy.dir/clean
 
 .PHONY : clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/test_scheduler.dir
+
+# All Build rule for target.
+CMakeFiles/test_scheduler.dir/all: CMakeFiles/zy.dir/all
+	$(MAKE) -f CMakeFiles/test_scheduler.dir/build.make CMakeFiles/test_scheduler.dir/depend
+	$(MAKE) -f CMakeFiles/test_scheduler.dir/build.make CMakeFiles/test_scheduler.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/zouyang/webserver/zy/build/CMakeFiles --progress-num=7,8 "Built target test_scheduler"
+.PHONY : CMakeFiles/test_scheduler.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/test_scheduler.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 9
+	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/test_scheduler.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 0
+.PHONY : CMakeFiles/test_scheduler.dir/rule
+
+# Convenience name for target.
+test_scheduler: CMakeFiles/test_scheduler.dir/rule
+
+.PHONY : test_scheduler
+
+# clean rule for target.
+CMakeFiles/test_scheduler.dir/clean:
+	$(MAKE) -f CMakeFiles/test_scheduler.dir/build.make CMakeFiles/test_scheduler.dir/clean
+.PHONY : CMakeFiles/test_scheduler.dir/clean
 
 #=============================================================================
 # Target rules for target CMakeFiles/test_fiber.dir
@@ -92,7 +121,7 @@ CMakeFiles/test_fiber.dir/all: CMakeFiles/zy.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_fiber.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 8
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 9
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/test_fiber.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 0
 .PHONY : CMakeFiles/test_fiber.dir/rule
@@ -114,12 +143,12 @@ CMakeFiles/test_fiber.dir/clean:
 CMakeFiles/test_util.dir/all: CMakeFiles/zy.dir/all
 	$(MAKE) -f CMakeFiles/test_util.dir/build.make CMakeFiles/test_util.dir/depend
 	$(MAKE) -f CMakeFiles/test_util.dir/build.make CMakeFiles/test_util.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/zouyang/webserver/zy/build/CMakeFiles --progress-num=9,10 "Built target test_util"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/zouyang/webserver/zy/build/CMakeFiles --progress-num=11,12 "Built target test_util"
 .PHONY : CMakeFiles/test_util.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_util.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 8
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 9
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/test_util.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 0
 .PHONY : CMakeFiles/test_util.dir/rule
@@ -141,12 +170,12 @@ CMakeFiles/test_util.dir/clean:
 CMakeFiles/test_thread.dir/all: CMakeFiles/zy.dir/all
 	$(MAKE) -f CMakeFiles/test_thread.dir/build.make CMakeFiles/test_thread.dir/depend
 	$(MAKE) -f CMakeFiles/test_thread.dir/build.make CMakeFiles/test_thread.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/zouyang/webserver/zy/build/CMakeFiles --progress-num=7,8 "Built target test_thread"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/zouyang/webserver/zy/build/CMakeFiles --progress-num=9,10 "Built target test_thread"
 .PHONY : CMakeFiles/test_thread.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_thread.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 8
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 9
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/test_thread.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 0
 .PHONY : CMakeFiles/test_thread.dir/rule
@@ -173,7 +202,7 @@ CMakeFiles/test.dir/all: CMakeFiles/zy.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 8
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 9
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 0
 .PHONY : CMakeFiles/test.dir/rule
@@ -200,7 +229,7 @@ CMakeFiles/test_config.dir/all: CMakeFiles/zy.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_config.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 8
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 9
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/test_config.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 0
 .PHONY : CMakeFiles/test_config.dir/rule
@@ -222,12 +251,12 @@ CMakeFiles/test_config.dir/clean:
 CMakeFiles/zy.dir/all:
 	$(MAKE) -f CMakeFiles/zy.dir/build.make CMakeFiles/zy.dir/depend
 	$(MAKE) -f CMakeFiles/zy.dir/build.make CMakeFiles/zy.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/zouyang/webserver/zy/build/CMakeFiles --progress-num=11,12,13,14,15,16 "Built target zy"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/zouyang/webserver/zy/build/CMakeFiles --progress-num=13,14,15,16,17,18,19 "Built target zy"
 .PHONY : CMakeFiles/zy.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/zy.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 6
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 7
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/zy.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/zouyang/webserver/zy/build/CMakeFiles 0
 .PHONY : CMakeFiles/zy.dir/rule

@@ -5,6 +5,7 @@
 #include "log.h"
 #include "util.h"
 #include "singleton.h"
+#include "scheduler.h"
 #include "thread.h"
 #include "util.h"
 #include "macro.h"

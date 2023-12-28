@@ -17,6 +17,7 @@ set(LIB_SRC
     zy/log.cc
     zy/util.cc
     zy/config.cc
+    zy/scheduler.cc
     zy/thread.cc
     zy/fiber.cc
     )
@@ -56,6 +57,11 @@ add_executable(test_fiber tests/test_fiber.cc)
 add_dependencies(test_fiber zy)
 force_redefine_file_macro_for_sources(test_fiber) #__FILE__
 target_link_libraries(test_fiber ${LIB_LIB})
+
+add_executable(test_scheduler tests/test_scheduler.cc)
+add_dependencies(test_scheduler zy)
+force_redefine_file_macro_for_sources(test_scheduler) #__FILE__
+target_link_libraries(test_scheduler ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

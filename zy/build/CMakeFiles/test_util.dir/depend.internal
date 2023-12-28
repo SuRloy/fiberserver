@@ -6,6 +6,7 @@ CMakeFiles/test_util.dir/tests/test_util.cc.o
  ../zy/fiber.h
  ../zy/log.h
  ../zy/macro.h
+ ../zy/scheduler.h
  ../zy/singleton.h
  ../zy/thread.h
  ../zy/util.h

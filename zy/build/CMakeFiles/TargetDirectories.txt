@@ -1,3 +1,4 @@
+/home/zouyang/webserver/zy/build/CMakeFiles/test_scheduler.dir
 /home/zouyang/webserver/zy/build/CMakeFiles/test_fiber.dir
 /home/zouyang/webserver/zy/build/CMakeFiles/rebuild_cache.dir
 /home/zouyang/webserver/zy/build/CMakeFiles/test_util.dir

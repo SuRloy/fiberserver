@@ -82,6 +82,20 @@ assert.h
 util.h
 ../zy/util.h
 
+../zy/scheduler.h
+memory
+-
+vector
+-
+list
+-
+iostream
+-
+fiber.h
+../zy/fiber.h
+thread.h
+../zy/thread.h
+
 ../zy/singleton.h
 
 ../zy/thread.h
@@ -127,6 +141,8 @@ util.h
 ../zy/util.h
 singleton.h
 ../zy/singleton.h
+scheduler.h
+../zy/scheduler.h
 thread.h
 ../zy/thread.h
 util.h

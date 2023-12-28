@@ -61,7 +61,7 @@ Thread::Thread(std::function<void()> cb, const std::string& name)
             << " name=" << name;
         throw std::logic_error("pthread_create error");
     }
-    m_semaphore.wait();
+    m_semaphore.wait();//保证回来之后线程Id初始好
 }
 
 Thread::~Thread() {
