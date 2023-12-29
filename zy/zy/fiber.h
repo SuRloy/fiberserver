@@ -4,12 +4,12 @@
 #include <memory>
 #include <functional>
 #include <ucontext.h>
-#include "thread.h"
 
 
 namespace zy {
 
 class Scheduler;
+
 class Fiber : public std::enable_shared_from_this<Fiber> {
 friend class Scheduler;
 public:
@@ -29,7 +29,7 @@ private:
 
 public:
     //创建协程
-    Fiber(std::function<void()> cb, size_t stacksize = 0);
+    Fiber(std::function<void()> cb, size_t stacksize = 0, bool use_caller = false);
     ~Fiber();
 
     void reset(std::function<void()> cb);//重置协程函数，并重置状态INIT,TERM
@@ -37,6 +37,7 @@ public:
     void swapOut();//切换到后台执行
 
     void call();
+    void back();
 
     uint64_t getId() const { return m_id;}
 
@@ -53,7 +54,10 @@ public:
     //总协程数
     static uint64_t TotalFibers();
 
+    //执行完成返回到线程主协程
     static void Mainfunc();
+    //执行完成返回到线程调度协程
+    static void CallerMainfunc();
 
     static uint64_t GetFiberId();
 private:

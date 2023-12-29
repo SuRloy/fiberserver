@@ -41,6 +41,8 @@ const std::string& Thread::GetName() {
 
 void Thread::SetName(const std::string& name) {
     if(name.empty()) {
+        //ZY_LOG_DEBUG(g_logger) << "no name";
+        t_thread_name = "";
         return;
     }
     if(t_thread) {
@@ -56,6 +58,7 @@ Thread::Thread(std::function<void()> cb, const std::string& name)
         m_name = "UNKNOW";
     }
     int rt = pthread_create(&m_thread, nullptr, &Thread::run, this);//如果有值说明已经创建了
+    //ZY_LOG_DEBUG(g_logger) << "pthread_create";
     if(rt) {
         ZY_LOG_ERROR(g_logger) << "pthread_create thread fail, rt=" << rt
             << " name=" << name;

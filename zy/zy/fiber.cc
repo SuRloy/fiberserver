@@ -16,7 +16,7 @@ static thread_local Fiber* t_fiber = nullptr;
 static thread_local Fiber::ptr t_threadFiber = nullptr;
 
 static ConfigVar<uint32_t>::ptr g_fiber_stack_size =
-    Config::Lookup<uint32_t>("fiber.stack_size", 256 * 1024, "fiber stack size");
+    Config::Lookup<uint32_t>("fiber.stack_size", 128 * 1024, "fiber stack size");
 
 class MallocStackAllocator {
 public:
@@ -29,7 +29,7 @@ public:
     }
 };
 
-using StackAlloc = MallocStackAllocator;
+using StackAllocator = MallocStackAllocator;
 
 uint64_t Fiber::GetFiberId() {
     if (t_fiber) {
@@ -48,25 +48,28 @@ Fiber::Fiber() {
 
     ++s_fiber_count;
 
-    ZY_LOG_DEBUG(g_logger) << "Fiber::Fiber";
+    ZY_LOG_DEBUG(g_logger) << "Fiber::Fiber main";
 }
 
-Fiber::Fiber(std::function<void()> cb, size_t stacksize)
+Fiber::Fiber(std::function<void()> cb, size_t stacksize, bool use_caller)
     :m_id(++s_fiber_id)
     ,m_cb(cb) {
     ++s_fiber_count;
     m_stacksize = stacksize ? stacksize : g_fiber_stack_size->getValue();
 
-    m_stack = MallocStackAllocator::Alloc(m_stacksize);
+    m_stack = StackAllocator::Alloc(m_stacksize);
     if (getcontext(&m_ctx)) {
         ZY_ASSERT2(false, "getcontext");
     }
     m_ctx.uc_link = nullptr;
-    //m_ctx.uc_link = &t_threadFiber->m_ctx;
     m_ctx.uc_stack.ss_sp = m_stack;
     m_ctx.uc_stack.ss_size = m_stacksize;
 
-    makecontext(&m_ctx, &Fiber::Mainfunc, 0);
+    if(!use_caller) {
+        makecontext(&m_ctx, &Fiber::Mainfunc, 0);
+    } else {
+        makecontext(&m_ctx, &Fiber::CallerMainfunc, 0);
+    }
 
     ZY_LOG_DEBUG(g_logger) << "Fiber::Fiber id = " << m_id;
 }
@@ -109,12 +112,21 @@ void Fiber::reset(std::function<void()> cb) {
 }
 
 void Fiber::call() {
+    SetThis(this);
     m_state = EXEC;
-    ZY_LOG_ERROR(g_logger) << getId();
+    //ZY_LOG_ERROR(g_logger) << getId();
     if (swapcontext(&t_threadFiber->m_ctx, &m_ctx)) {
         ZY_ASSERT2(false, "swapcontext");
     }
 }
+
+void Fiber::back() {
+    SetThis(t_threadFiber.get());
+    if(swapcontext(&m_ctx, &t_threadFiber->m_ctx)) {
+        ZY_ASSERT2(false, "swapcontext");
+    }
+}
+
 //切换到当前协程执行
 void Fiber::swapIn() {
     SetThis(this);
@@ -137,7 +149,7 @@ void Fiber::swapOut() {
 void Fiber::SetThis(Fiber* f) {
     t_fiber = f;
 }
-//程序拿到自己的协程,没有协程会新建一个协程
+//返回当前协程,没有协程说明目前是主协程
 Fiber::ptr Fiber::GetThis() {
     if (t_fiber) {
         return t_fiber->shared_from_this();
@@ -166,7 +178,6 @@ uint64_t Fiber::TotalFibers() {
 
 void Fiber::Mainfunc() {
     Fiber::ptr cur = GetThis();
-    //Fiber::ptr cur = SetThis(this);
     ZY_ASSERT(cur);
     try {
         cur->m_cb();
@@ -192,5 +203,34 @@ void Fiber::Mainfunc() {
 
     ZY_ASSERT2(false, "never reach fiber_id=" + std::to_string(raw_ptr->getId()));
 }
+
+void Fiber::CallerMainfunc() {
+    Fiber::ptr cur = GetThis();
+    ZY_ASSERT(cur);
+    try {
+        cur->m_cb();
+        cur->m_cb = nullptr;
+        cur->m_state = TERM;
+    } catch (std::exception& ex) {
+        cur->m_state = EXCEPT;
+        ZY_LOG_ERROR(g_logger) << "Fiber Except: " << ex.what()
+            << " fiber_id=" << cur->getId()
+            << std::endl
+            << zy::BacktraceToString();
+    } catch (...) {
+        cur->m_state = EXCEPT;
+        ZY_LOG_ERROR(g_logger) << "Fiber Except: "
+            << " fiber_id=" << cur->getId()
+            << std::endl
+            << zy::BacktraceToString();
+    }
+    
+    auto raw_ptr = cur.get();
+    cur.reset();
+    raw_ptr->back();
+
+    ZY_ASSERT2(false, "never reach fiber_id=" + std::to_string(raw_ptr->getId()));
+}
+
 
 }

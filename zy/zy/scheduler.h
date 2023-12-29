@@ -45,8 +45,8 @@ public:
         {
             MutexType::Lock lock(m_mutex);
             while (begin != end) {
-                need_tickle =  scheduleNoLock(&*begin) || need_tickle;
-                //begin++;
+                need_tickle =  scheduleNoLock(&*begin, -1) || need_tickle;
+                ++begin;
             }
             if (need_tickle) {
                 tickle();
@@ -106,9 +106,13 @@ private:
     };
 private:
     MutexType m_mutex;
+    // 线程池
     std::vector<Thread::ptr> m_threads;
+    // 待执行的协程队列
     std::list<FiberAndThread> m_fibers;
+    // use_caller为true时有效, 调度协程
     Fiber::ptr m_rootFiber;
+    // 协程调度器名称
     std::string m_name;
 
 protected:

@@ -43,8 +43,6 @@ functional
 -
 ucontext.h
 -
-thread.h
-../zy/thread.h
 
 ../zy/log.h
 string
