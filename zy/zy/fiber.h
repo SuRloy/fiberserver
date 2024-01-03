@@ -65,6 +65,7 @@ private:
     uint32_t m_stacksize = 0;
     State m_state = INIT;
 
+    // 上下文
     ucontext_t m_ctx;
     void* m_stack = nullptr;
 

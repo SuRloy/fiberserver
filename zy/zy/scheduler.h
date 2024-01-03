@@ -20,7 +20,7 @@ public:
 
     const std::string& getName() const { return m_name;}
 
-    static Scheduler* Getthis();
+    static Scheduler* GetThis();
     static Fiber* GetMainFiber();
 
     void start();
@@ -31,6 +31,7 @@ public:
         bool need_tickle = false;
         {
             MutexType::Lock lock(m_mutex);
+            // 将任务加入到队列中，若任务队列中已经有任务了，则tickle()
             need_tickle = scheduleNoLock(fc, thread);
         }
         if (need_tickle) {
@@ -74,8 +75,10 @@ private:
     struct FiberAndThread {
         Fiber::ptr fiber;
         std::function<void()> cb;
+        // 线程id 协程在哪个线程上 
         int thread;
 
+        // 确定协程在哪个线程上跑
         FiberAndThread(Fiber::ptr f, int thr)
             :fiber(f), thread(thr) {}
         
@@ -84,6 +87,7 @@ private:
                 fiber.swap(*f);//智能指针f变成空指针，指针计数器减一，防止出问题 智能指针本质上是使用局部变量生命周期管理堆内存
         }
 
+         // 确定回调函数在哪个线程上跑
         FiberAndThread(std::function<void()> f, int thr)
             :cb(f), thread(thr) {
 
@@ -122,6 +126,7 @@ protected:
     std::atomic<size_t> m_idleThreadCount = {0};
     bool m_stopping = true;
     bool m_autoStop = false;
+    // 主线程Id(use_caller)
     int m_rootThread = 0;
 };
 

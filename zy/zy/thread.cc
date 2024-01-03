@@ -42,7 +42,6 @@ const std::string& Thread::GetName() {
 void Thread::SetName(const std::string& name) {
     if(name.empty()) {
         //ZY_LOG_DEBUG(g_logger) << "no name";
-        t_thread_name = "";
         return;
     }
     if(t_thread) {
