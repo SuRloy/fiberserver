@@ -54,7 +54,7 @@ IOManager::IOManager(size_t threads, bool use_caller, const std::string& name)
         ZY_ASSERT(m_epfd > 0);
 
         int rt = pipe(m_tickleFds);
-        ZY_ASSERT(rt);
+        ZY_ASSERT(!rt);
 
         epoll_event event;
         memset(&event, 0, sizeof(epoll_event));
@@ -62,10 +62,10 @@ IOManager::IOManager(size_t threads, bool use_caller, const std::string& name)
         event.data.fd = m_tickleFds[0];
 
         rt = fcntl(m_tickleFds[0], F_SETFL, O_NONBLOCK);
-        ZY_ASSERT(rt);
+        ZY_ASSERT(!rt);
 
         rt = epoll_ctl(m_epfd, EPOLL_CTL_ADD, m_tickleFds[0], &event);
-        ZY_ASSERT(rt);
+        ZY_ASSERT(!rt);
 
         contextResize(32);
 
@@ -289,6 +289,166 @@ bool IOManager::cancelAll(int fd) {
 IOManager* IOManager::GetThis() {
     return dynamic_cast<IOManager *>(Scheduler::GetThis());
 }
+void IOManager::tickle() {
+    // 没有在执行 idel 的线程
+    if (!hasIdleThread()) {
+        return;
+    }
+    
+    // 有任务来了，就往 pipe 里发送1个字节的数据，这样 epoll_wait 就会唤醒
+    int rt = write(m_tickleFds[1], "T", 1);
+    ZY_ASSERT(rt == 1);
 
+}
+
+bool IOManager::stopping() {
+    // uint64_t timeout = 0;
+    // return stopping(timeout);
+    return  m_pendingEventCount == 0
+        && Scheduler::stopping();
+}
+
+// bool IOManager::stopping(uint64_t& timeout) {
+//     // 获得下次任务执行的时间
+//     timeout = getNextTimer();
+//     // 定时器为空 && 等待执行的事件数量为0 && scheduler可以stop
+//     return timeout == ~0ull
+//         && m_pendingEventCount == 0
+//         && Scheduler::stopping();
+// }
+
+
+
+void IOManager::idle() {
+   epoll_event* events = new epoll_event[64]();
+    // 使用智能指针托管events， 离开idle自动释放
+    std::shared_ptr<epoll_event> shared_events(events, [](epoll_event *ptr)
+                                              { delete[] ptr; });
+	
+    while (true) {
+        // 下一个任务要执行的时间
+        //uint64_t next_timeout = 0;
+        // 获得下一个执行任务的时间，并且判断是否达到停止条件
+        if (stopping()) {
+            ZY_LOG_INFO(g_logger) << "name = " << getName()
+                                     << ", idle stopping exit";
+            break;
+        }
+        
+        int rt = 0;
+        do {
+            // 毫秒级精度
+            static const int MAX_TIMEOUT = 3000;
+            // 如果有定时器任务
+            // if (next_timeout != ~0ull) {
+            //     // 睡眠时间为next_timeout，但不超过MAX_TIMEOUT
+            //     next_timeout = (int)next_timeout > MAX_TIMEOUT
+            //                     ? MAX_TIMEOUT : (int)next_timeout;
+            // } else {
+            //     // 没定时器任务就睡眠MAX_TIMEOUT
+            //     next_timeout = MAX_TIMEOUT;
+            // }
+            /*  
+             * 阻塞在这里，但有3中情况能够唤醒epoll_wait
+             * 1. 超时时间到了
+             * 2. 关注的 socket 有数据来了
+             * 3. 通过 tickle 往 pipe 里发数据，表明有任务来了
+             */
+            rt = epoll_wait(m_epfd, events, 64, MAX_TIMEOUT);
+            /* 这里就是源码 ep_poll() 中由操作系统中断返回的 EINTR
+             * 需要重新尝试 epoll_Wait */
+            if(rt < 0 && errno == EINTR) {
+            } else {
+                break;
+            }
+        } while (true);
+        
+        // std::vector<std::function<void()> > cbs;
+        // // 获取已经超时的任务
+        // listExpiredCb(cbs);
+		
+        // // 全部放到任务队列中
+        // if (!cbs.empty()) {
+        //     Scheduler::schedule(cbs.begin(), cbs.end());
+        //     cbs.clear();
+        // }
+		
+        // 遍历已经准备好的fd
+        for (int i = 0; i < rt; ++i) {
+            // 从 events 中拿一个 event
+            epoll_event &event = events[i];
+            // 如果获得的这个信息时来自 pipe
+            if (event.data.fd == m_tickleFds[0]) {
+                uint8_t dummy;
+                // 将 pipe 发来的1个字节数据读掉
+                while (read(m_tickleFds[0], &dummy, 1) == 1);
+                continue;
+            }
+			
+            // 从 ptr 中拿出 FdContext
+            FdContext *fd_ctx = (FdContext*)event.data.ptr;
+            FdContext::MutexType::Lock lock(fd_ctx->mutex);
+			/* 在源码中，注册事件时内核会自动关注POLLERR和POLLHUP */
+            if (event.events & (EPOLLERR | EPOLLHUP)) {
+                // 将读写事件都加上
+                event.events |= (EPOLLIN | EPOLLOUT) & fd_ctx->events;
+            }
+          
+            int real_events = NONE;
+            // 读事件好了
+            if (event.events & EPOLLIN) {
+                real_events |= READ;
+            }
+            // 写事件好了
+            if (event.events & EPOLLOUT) {
+                real_events |= WRITE;
+            }
+
+            // 没事件
+            if ((fd_ctx->events & real_events) == NONE) {
+                continue;
+            }
+
+            // 剩余的事件
+            int left_events = (fd_ctx->events & ~real_events);
+            // 如果执行完该事件还有事件则修改，若无事件则删除
+            int op = left_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
+            // 更新新的事件
+            event.events = EPOLLET | left_events;
+	
+            // 重新注册事件
+            int rt2 = epoll_ctl(m_epfd, op, fd_ctx->fd, &event);
+            if (rt2) {
+                ZY_LOG_ERROR(g_logger) << "epoll_ctl(" << m_epfd << ","
+                                          << op << ", " << fd_ctx->fd << ", " << event.events << ") :"
+                                          << rt2 << " (" << errno << ") (" << strerror(errno) << ")";
+                continue;
+            }
+			
+            // 读事件好了，执行读事件
+            if (real_events & READ) {
+                fd_ctx->triggerEvent(READ);
+                --m_pendingEventCount;
+            }
+            // 写事件好了，执行写事件
+            if (real_events & WRITE) {
+                fd_ctx->triggerEvent(WRITE);
+                --m_pendingEventCount;
+            }
+        }
+		
+        // 执行完epoll_wait返回的事件
+        // 获得当前协程
+        Fiber::ptr cur = Fiber::GetThis();
+        // 获得裸指针
+        auto raw_ptr = cur.get();
+        // 将当前idle协程指向空指针，状态为INIT
+        cur.reset();
+
+        // 执行完返回scheduler的MainFiber 继续下一轮
+        raw_ptr->swapOut();
+    }
+
+}
 
 }

@@ -80,6 +80,16 @@ CMakeFiles/zy.dir/zy/fiber.cc.o: ../zy/singleton.h
 CMakeFiles/zy.dir/zy/fiber.cc.o: ../zy/thread.h
 CMakeFiles/zy.dir/zy/fiber.cc.o: ../zy/util.h
 
+CMakeFiles/zy.dir/zy/iomanager.cc.o: ../zy/fiber.h
+CMakeFiles/zy.dir/zy/iomanager.cc.o: ../zy/iomanager.cc
+CMakeFiles/zy.dir/zy/iomanager.cc.o: ../zy/iomanager.h
+CMakeFiles/zy.dir/zy/iomanager.cc.o: ../zy/log.h
+CMakeFiles/zy.dir/zy/iomanager.cc.o: ../zy/macro.h
+CMakeFiles/zy.dir/zy/iomanager.cc.o: ../zy/scheduler.h
+CMakeFiles/zy.dir/zy/iomanager.cc.o: ../zy/singleton.h
+CMakeFiles/zy.dir/zy/iomanager.cc.o: ../zy/thread.h
+CMakeFiles/zy.dir/zy/iomanager.cc.o: ../zy/util.h
+
 CMakeFiles/zy.dir/zy/log.cc.o: /home/zouyang/app/local/include/yaml-cpp/binary.h
 CMakeFiles/zy.dir/zy/log.cc.o: /home/zouyang/app/local/include/yaml-cpp/dll.h
 CMakeFiles/zy.dir/zy/log.cc.o: /home/zouyang/app/local/include/yaml-cpp/emitter.h

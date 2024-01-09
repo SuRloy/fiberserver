@@ -237,6 +237,7 @@ void Scheduler::run() {
             // 如果idle_fiber的状态为TERM则结束循环，真正的结束
             if(idle_fiber->getState() == Fiber::TERM) {
                 ZY_LOG_INFO(g_logger) << "idle fiber term";
+                tickle();
                 break;
             }
             // 正在执行idle的线程数量+1

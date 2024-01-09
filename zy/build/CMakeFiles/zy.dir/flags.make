@@ -20,3 +20,5 @@ CXX_INCLUDES = -I/home/zouyang/webserver/zy/. -I/home/zouyang/app/local/include
 
 # Custom defines: CMakeFiles/zy.dir/zy/fiber.cc.o_DEFINES = __FILE__="zy/fiber.cc"
 
+# Custom defines: CMakeFiles/zy.dir/zy/iomanager.cc.o_DEFINES = __FILE__="zy/iomanager.cc"
+

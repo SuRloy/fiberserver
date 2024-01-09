@@ -3,6 +3,7 @@ file(REMOVE_RECURSE
   "../lib/libzy.so"
   "CMakeFiles/zy.dir/zy/config.cc.o"
   "CMakeFiles/zy.dir/zy/fiber.cc.o"
+  "CMakeFiles/zy.dir/zy/iomanager.cc.o"
   "CMakeFiles/zy.dir/zy/log.cc.o"
   "CMakeFiles/zy.dir/zy/scheduler.cc.o"
   "CMakeFiles/zy.dir/zy/thread.cc.o"

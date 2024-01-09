@@ -12,7 +12,7 @@ static zy::Logger::ptr g_logger = ZY_LOG_NAME("system");
 static std::atomic<uint64_t> s_fiber_id {0};
 static std::atomic<uint64_t> s_fiber_count {0};
 
-// 当前协程
+// 当前协程，初始化为主协程
 static thread_local Fiber* t_fiber = nullptr;
 // 主协程
 static thread_local Fiber::ptr t_threadFiber = nullptr;
