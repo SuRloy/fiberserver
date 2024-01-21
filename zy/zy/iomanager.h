@@ -2,10 +2,11 @@
 #define __ZY_IOMANAGER_H__
 
 #include "scheduler.h"
+#include "timer.h"
 
 namespace zy {
 
-class IOManager : public Scheduler {
+class IOManager : public Scheduler, public TimerManager {
 public:
     typedef std::shared_ptr<IOManager> ptr;
     typedef RWMutex RWMutexType;
@@ -53,9 +54,18 @@ protected:
     void tickle() override;
     bool stopping() override;
     void idle() override;
-
+    void onTimerInsertedAtFront() override;
+    /**
+     * @brief 重置socket句柄上下文的容器大小
+     * @param[in] size 容量大小
+     */
     void contextResize(size_t size);
-
+    /**
+     * @brief 判断是否可以停止
+     * @param[out] timeout 最近要出发的定时器事件间隔
+     * @return 返回是否可以停止
+     */
+    bool stopping(uint64_t& timeout);
 private:
     int m_epfd = 0;
     int m_tickleFds[2];
@@ -63,6 +73,7 @@ private:
     // 当前等待执行的事件数量
     std::atomic<size_t> m_pendingEventCount = {0};
     RWMutexType m_mutex;
+    // socket事件上下文的容器
     std::vector<FdContext*> m_fdContexts;
 };
 

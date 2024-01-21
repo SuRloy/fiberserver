@@ -286,9 +286,11 @@ bool IOManager::cancelAll(int fd) {
     ZY_ASSERT(fd_ctx->events == 0);
     return true;
 }
+
 IOManager* IOManager::GetThis() {
     return dynamic_cast<IOManager *>(Scheduler::GetThis());
 }
+
 void IOManager::tickle() {
     // 没有在执行 idel 的线程
     if (!hasIdleThread()) {
@@ -301,35 +303,33 @@ void IOManager::tickle() {
 
 }
 
-bool IOManager::stopping() {
-    // uint64_t timeout = 0;
-    // return stopping(timeout);
-    return  m_pendingEventCount == 0
+bool IOManager::stopping(uint64_t& timeout) {
+    // 获得下次任务执行的时间
+    timeout = getNextTimer();
+    // 定时器为空 && 等待执行的事件数量为0 && scheduler可以stop
+    return timeout == ~0ull
+        && m_pendingEventCount == 0
         && Scheduler::stopping();
 }
 
-// bool IOManager::stopping(uint64_t& timeout) {
-//     // 获得下次任务执行的时间
-//     timeout = getNextTimer();
-//     // 定时器为空 && 等待执行的事件数量为0 && scheduler可以stop
-//     return timeout == ~0ull
-//         && m_pendingEventCount == 0
-//         && Scheduler::stopping();
-// }
+bool IOManager::stopping() {
+    uint64_t timeout = 0;
+    return stopping(timeout);
+}
 
 
 
 void IOManager::idle() {
-   epoll_event* events = new epoll_event[64]();
+    epoll_event* events = new epoll_event[64]();
     // 使用智能指针托管events， 离开idle自动释放
     std::shared_ptr<epoll_event> shared_events(events, [](epoll_event *ptr)
                                               { delete[] ptr; });
 	
     while (true) {
         // 下一个任务要执行的时间
-        //uint64_t next_timeout = 0;
+        uint64_t next_timeout = 0;
         // 获得下一个执行任务的时间，并且判断是否达到停止条件
-        if (stopping()) {
+        if (stopping(next_timeout)) {
             ZY_LOG_INFO(g_logger) << "name = " << getName()
                                      << ", idle stopping exit";
             break;
@@ -339,22 +339,22 @@ void IOManager::idle() {
         do {
             // 毫秒级精度
             static const int MAX_TIMEOUT = 3000;
-            // 如果有定时器任务
-            // if (next_timeout != ~0ull) {
-            //     // 睡眠时间为next_timeout，但不超过MAX_TIMEOUT
-            //     next_timeout = (int)next_timeout > MAX_TIMEOUT
-            //                     ? MAX_TIMEOUT : (int)next_timeout;
-            // } else {
-            //     // 没定时器任务就睡眠MAX_TIMEOUT
-            //     next_timeout = MAX_TIMEOUT;
-            // }
+            //如果有定时器任务
+            if (next_timeout != ~0ull) {
+                // 睡眠时间为next_timeout，但不超过MAX_TIMEOUT
+                next_timeout = (int)next_timeout > MAX_TIMEOUT
+                                ? MAX_TIMEOUT : (int)next_timeout;
+            } else {
+                // 没定时器任务就睡眠MAX_TIMEOUT
+                next_timeout = MAX_TIMEOUT;
+            }
             /*  
              * 阻塞在这里，但有3中情况能够唤醒epoll_wait
              * 1. 超时时间到了
              * 2. 关注的 socket 有数据来了
              * 3. 通过 tickle 往 pipe 里发数据，表明有任务来了
              */
-            rt = epoll_wait(m_epfd, events, 64, MAX_TIMEOUT);
+            rt = epoll_wait(m_epfd, events, 64, (int)next_timeout);
             /* 这里就是源码 ep_poll() 中由操作系统中断返回的 EINTR
              * 需要重新尝试 epoll_Wait */
             if(rt < 0 && errno == EINTR) {
@@ -363,15 +363,15 @@ void IOManager::idle() {
             }
         } while (true);
         
-        // std::vector<std::function<void()> > cbs;
-        // // 获取已经超时的任务
-        // listExpiredCb(cbs);
+        std::vector<std::function<void()> > cbs;
+        // 获取已经超时的任务
+        listExpiredCb(cbs);
 		
-        // // 全部放到任务队列中
-        // if (!cbs.empty()) {
-        //     Scheduler::schedule(cbs.begin(), cbs.end());
-        //     cbs.clear();
-        // }
+        // 全部放到任务队列中
+        if (!cbs.empty()) {
+            Scheduler::schedule(cbs.begin(), cbs.end());
+            cbs.clear();
+        }
 		
         // 遍历已经准备好的fd
         for (int i = 0; i < rt; ++i) {
@@ -449,6 +449,10 @@ void IOManager::idle() {
         raw_ptr->swapOut();
     }
 
+}
+
+void IOManager::onTimerInsertedAtFront() {
+    tickle();
 }
 
 }

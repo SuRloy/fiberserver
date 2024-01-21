@@ -10,6 +10,7 @@ CMakeFiles/test_iomanager.dir/tests/test_iomanager.cc.o
  ../zy/scheduler.h
  ../zy/singleton.h
  ../zy/thread.h
+ ../zy/timer.h
  ../zy/util.h
  ../zy/zy.h
  /home/zouyang/app/local/include/yaml-cpp/binary.h

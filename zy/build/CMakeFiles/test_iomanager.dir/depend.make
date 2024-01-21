@@ -9,6 +9,7 @@ CMakeFiles/test_iomanager.dir/tests/test_iomanager.cc.o: ../zy/macro.h
 CMakeFiles/test_iomanager.dir/tests/test_iomanager.cc.o: ../zy/scheduler.h
 CMakeFiles/test_iomanager.dir/tests/test_iomanager.cc.o: ../zy/singleton.h
 CMakeFiles/test_iomanager.dir/tests/test_iomanager.cc.o: ../zy/thread.h
+CMakeFiles/test_iomanager.dir/tests/test_iomanager.cc.o: ../zy/timer.h
 CMakeFiles/test_iomanager.dir/tests/test_iomanager.cc.o: ../zy/util.h
 CMakeFiles/test_iomanager.dir/tests/test_iomanager.cc.o: ../zy/zy.h
 CMakeFiles/test_iomanager.dir/tests/test_iomanager.cc.o: /home/zouyang/app/local/include/yaml-cpp/binary.h

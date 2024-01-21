@@ -88,6 +88,7 @@ CMakeFiles/zy.dir/zy/iomanager.cc.o: ../zy/macro.h
 CMakeFiles/zy.dir/zy/iomanager.cc.o: ../zy/scheduler.h
 CMakeFiles/zy.dir/zy/iomanager.cc.o: ../zy/singleton.h
 CMakeFiles/zy.dir/zy/iomanager.cc.o: ../zy/thread.h
+CMakeFiles/zy.dir/zy/iomanager.cc.o: ../zy/timer.h
 CMakeFiles/zy.dir/zy/iomanager.cc.o: ../zy/util.h
 
 CMakeFiles/zy.dir/zy/log.cc.o: /home/zouyang/app/local/include/yaml-cpp/binary.h
@@ -142,6 +143,11 @@ CMakeFiles/zy.dir/zy/thread.cc.o: ../zy/singleton.h
 CMakeFiles/zy.dir/zy/thread.cc.o: ../zy/thread.cc
 CMakeFiles/zy.dir/zy/thread.cc.o: ../zy/thread.h
 CMakeFiles/zy.dir/zy/thread.cc.o: ../zy/util.h
+
+CMakeFiles/zy.dir/zy/timer.cc.o: ../zy/thread.h
+CMakeFiles/zy.dir/zy/timer.cc.o: ../zy/timer.cc
+CMakeFiles/zy.dir/zy/timer.cc.o: ../zy/timer.h
+CMakeFiles/zy.dir/zy/timer.cc.o: ../zy/util.h
 
 CMakeFiles/zy.dir/zy/util.cc.o: ../zy/fiber.h
 CMakeFiles/zy.dir/zy/util.cc.o: ../zy/log.h

@@ -20,6 +20,7 @@ set(LIB_SRC
     zy/scheduler.cc
     zy/thread.cc
     zy/fiber.cc
+    zy/timer.cc
     zy/iomanager.cc
     )
 

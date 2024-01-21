@@ -89,6 +89,7 @@ CMakeFiles/zy.dir/zy/iomanager.cc.o
  /home/zouyang/webserver/zy/zy/scheduler.h
  /home/zouyang/webserver/zy/zy/singleton.h
  /home/zouyang/webserver/zy/zy/thread.h
+ /home/zouyang/webserver/zy/zy/timer.h
  /home/zouyang/webserver/zy/zy/util.h
 CMakeFiles/zy.dir/zy/log.cc.o
  /home/zouyang/app/local/include/yaml-cpp/binary.h
@@ -142,6 +143,11 @@ CMakeFiles/zy.dir/zy/thread.cc.o
  /home/zouyang/webserver/zy/zy/singleton.h
  /home/zouyang/webserver/zy/zy/thread.cc
  /home/zouyang/webserver/zy/zy/thread.h
+ /home/zouyang/webserver/zy/zy/util.h
+CMakeFiles/zy.dir/zy/timer.cc.o
+ /home/zouyang/webserver/zy/zy/thread.h
+ /home/zouyang/webserver/zy/zy/timer.cc
+ /home/zouyang/webserver/zy/zy/timer.h
  /home/zouyang/webserver/zy/zy/util.h
 CMakeFiles/zy.dir/zy/util.cc.o
  /home/zouyang/webserver/zy/zy/fiber.h

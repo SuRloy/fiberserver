@@ -7,6 +7,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/zy.dir/zy/log.cc.o"
   "CMakeFiles/zy.dir/zy/scheduler.cc.o"
   "CMakeFiles/zy.dir/zy/thread.cc.o"
+  "CMakeFiles/zy.dir/zy/timer.cc.o"
   "CMakeFiles/zy.dir/zy/util.cc.o"
 )
 

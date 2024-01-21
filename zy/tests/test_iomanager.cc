@@ -46,8 +46,21 @@ void test01() {
     
 }
 
-int main(int argc, char** argv) {
+zy::Timer::ptr s_timer;
+void test_timer() {
+    zy::IOManager iom(2);
+    s_timer = iom.addTimer(1000, [](){
+        static int i = 0;
+        ZY_LOG_INFO(g_logger) << "hello timer i=" << i;
+        if (++i == 5) {
+            //timer->cancel();
+            s_timer->reset(2000, true);
+        }
+    }, true);
+}
 
-    test01();
+int main(int argc, char** argv) {
+    test_timer();
+    //test01();
     return 0;
 }

@@ -5,7 +5,7 @@
 namespace zy {
 //static thread_local 通常用于修饰静态变量，以便每个线程都有一个独立的静态变量实例
 static thread_local Thread* t_thread = nullptr;
-static thread_local std::string t_thread_name = "UNKNOW";
+static thread_local std::string t_thread_name = "";
 
 static zy::Logger::ptr g_logger = ZY_LOG_NAME("system");
 
@@ -54,10 +54,9 @@ Thread::Thread(std::function<void()> cb, const std::string& name)
     :m_cb(cb)
     ,m_name(name) {
     if(name.empty()) {
-        m_name = "UNKNOW";
+        m_name = "UNKOWN";
     }
     int rt = pthread_create(&m_thread, nullptr, &Thread::run, this);//如果有值说明已经创建了
-    //ZY_LOG_DEBUG(g_logger) << "pthread_create";
     if(rt) {
         ZY_LOG_ERROR(g_logger) << "pthread_create thread fail, rt=" << rt
             << " name=" << name;

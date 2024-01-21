@@ -568,6 +568,33 @@ zy/thread.cc.s:
 	$(MAKE) -f CMakeFiles/zy.dir/build.make CMakeFiles/zy.dir/zy/thread.cc.s
 .PHONY : zy/thread.cc.s
 
+zy/timer.o: zy/timer.cc.o
+
+.PHONY : zy/timer.o
+
+# target to build an object file
+zy/timer.cc.o:
+	$(MAKE) -f CMakeFiles/zy.dir/build.make CMakeFiles/zy.dir/zy/timer.cc.o
+.PHONY : zy/timer.cc.o
+
+zy/timer.i: zy/timer.cc.i
+
+.PHONY : zy/timer.i
+
+# target to preprocess a source file
+zy/timer.cc.i:
+	$(MAKE) -f CMakeFiles/zy.dir/build.make CMakeFiles/zy.dir/zy/timer.cc.i
+.PHONY : zy/timer.cc.i
+
+zy/timer.s: zy/timer.cc.s
+
+.PHONY : zy/timer.s
+
+# target to generate assembly for a file
+zy/timer.cc.s:
+	$(MAKE) -f CMakeFiles/zy.dir/build.make CMakeFiles/zy.dir/zy/timer.cc.s
+.PHONY : zy/timer.cc.s
+
 zy/util.o: zy/util.cc.o
 
 .PHONY : zy/util.o
@@ -650,6 +677,9 @@ help:
 	@echo "... zy/thread.o"
 	@echo "... zy/thread.i"
 	@echo "... zy/thread.s"
+	@echo "... zy/timer.o"
+	@echo "... zy/timer.i"
+	@echo "... zy/timer.s"
 	@echo "... zy/util.o"
 	@echo "... zy/util.i"
 	@echo "... zy/util.s"
