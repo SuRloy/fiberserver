@@ -4,6 +4,7 @@
 #include <string.h>
 #include <assert.h>
 #include "util.h"
+#include "../log.h"
 
 #define ZY_ASSERT(x) \
     if (!(x)) { \

@@ -1,8 +1,13 @@
 #ifndef __ZY_SINGLETON_H__
 #define __ZY_SINGLETON_H__
 
-namespace zy {
+#include "noncopyable.h"
 
+namespace zy {
+/**
+ * @brief 单例模式模板类
+ * @tparam T 类型
+ */
 template<class T, class X = void, int N = 0>
 class Singleton {
 public:
@@ -20,7 +25,6 @@ public:
         return v;
     }
 };
-
 
 
 
