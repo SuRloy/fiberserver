@@ -1,135 +1,166 @@
 #ifndef __ZY_SCHEDULER_H__
 #define __ZY_SCHEDULER_H__
 
-#include <memory>
-#include <vector>
 #include <list>
-#include <iostream>
-#include "fiber.h"
+#include <vector>
+#include <atomic>
 #include "thread.h"
+#include "fiber.h"
+#include "utils/mutex.h"
+#include "utils/noncopyable.h"
 
 namespace zy {
 
-class Scheduler {
+/**
+ * @brief 协程调度器，可以被继承
+ */
+class Scheduler : NonCopyable {
 public:
-    typedef std::shared_ptr<Scheduler> ptr;
-    typedef Mutex MutexType;
+    using ptr = std::shared_ptr<Scheduler>;
 
-    Scheduler(size_t threads = 1, bool use_caller = true, const std::string& name = "");
+    /**
+     * @brief 构造函数
+     * @param name 调度器名称
+     * @param thread_num 子线程数量
+     * @param use_caller 调度器所在线程是否作为调度线程
+     */
+    explicit Scheduler(std::string name, uint32_t thread_num = 0, bool use_caller = true);
+
+    /**
+     * @brief 析构函数
+     */
     virtual ~Scheduler();
 
-    const std::string& getName() const { return m_name;}
+    const std::string& getName() const { return name_;}
 
-    static Scheduler* GetThis();
-    static Fiber* GetMainFiber();
-
+    /**
+     * @brief 启动调度器
+     */
     void start();
-    void stop();
 
-    template<class FiberOrCb>
-    void schedule(FiberOrCb fc, int thread = -1) {
+    /**
+     * @brief 停止调度器
+     * @details 等所有调度任务都执行完了再返回
+     */
+    void stop();
+    
+    /**
+     * @brief 向调度器添加调度任务
+     * @tparam Task 调度任务类型，可以是协程或者函数
+     * @param t 协程或者函数
+     * @param tid 指定在某一个线程执行
+     */
+    template<class Task>
+    void addTask(Task t, uint32_t tid = -1) {
         bool need_tickle = false;
         {
-            MutexType::Lock lock(m_mutex);
-            // 将任务加入到队列中，若任务队列中已经有任务了，则tickle()
-            need_tickle = scheduleNoLock(fc, thread);
+            Mutex::Lock lock(mutex_);
+            need_tickle = tasks_.empty();
+            SchedulerTask task(t, tid);
+            if (task.fiber || task.cb) {
+                tasks_.push_back(task);//存入fiber列表中
+            }
         }
         if (need_tickle) {
             tickle();
         }
     }
 
-    //批量存入
-    template<class InputIterator>
-    void schedule(InputIterator begin, InputIterator end) {
-        bool need_tickle = false;
-        {
-            MutexType::Lock lock(m_mutex);
-            while (begin != end) {
-                need_tickle =  scheduleNoLock(&*begin, -1) || need_tickle;
-                ++begin;
-            }
-            if (need_tickle) {
-                tickle();
-            }
-        }
-    }
 protected:
-    virtual void tickle();
-    void run();
+    /**
+     * @brief 调度器是否可以停止
+     * @return 是否可以停止
+     */
     virtual bool stopping();
+
+    /**
+     * @brief 线程入口函数，也是线程主协程的入口函数，也称作调度协程
+     */
+    virtual void run();
+
+    /**
+     * @brief 空闲协程，在线程没有调度任务时转到该协程执行
+     */
     virtual void idle();
 
-    void setThis();
+    /**
+     * @brief 通知协程调度器有调度任务需要执行了
+     */
+    virtual void tickle();
 
-    bool hasIdleThread() { return m_idleThreadCount > 0;}
+public:
+    /**
+     * @brief 获取当前线程所属的调度器
+     * @return 当前线程所属的调度器
+     */
+    static Scheduler *GetThis();
+
+    /**
+     * @brief 设置当前线程所属的调度器
+     * @param scheduler 当前线程所属的调度器
+     */
+    static void SetThis(Scheduler *scheduler);
+
+    /**
+     * @brief 获取当前线程的调度协程
+     * @return 当前线程的调度协程
+     */    
+    static Fiber* Scheduler::GetSchedulerFiber();
+    /**
+     * @brief 获得当前线程的调度协程
+     * @return 当前线程的调度协程
+     */
+    static Fiber *GetSchedulerFiber();
+
+
 private:
-    template<class FiberOrCb>
-    bool scheduleNoLock(FiberOrCb fc, int thread) {
-        bool need_tickle = m_fibers.empty();
-        FiberAndThread ft(fc, thread);
-        if (ft.fiber || ft.cb) {
-            m_fibers.push_back(ft);//存入fiber列表中
-        }
-        return need_tickle;
-    }
-private:
-    struct FiberAndThread {
-        Fiber::ptr fiber;
-        std::function<void()> cb;
+    struct SchedulerTask {
+        Fiber::ptr fiber_;
+        std::function<void()> cb_;
         // 线程id 协程在哪个线程上 
-        int thread;
+        uint32_t tid_;
 
-        // 确定协程在哪个线程上跑
-        FiberAndThread(Fiber::ptr f, int thr)
-            :fiber(f), thread(thr) {}
-        
-        FiberAndThread(Fiber::ptr* f, int thr)
-            :thread(thr) {
-                fiber.swap(*f);//智能指针f变成空指针，指针计数器减一，防止出问题 智能指针本质上是使用局部变量生命周期管理堆内存
+        SchedulerTask() : fiber_(nullptr), cb_(nullptr), tid_(-1) {}
+
+        explicit SchedulerTask(Fiber::ptr fiber, uint32_t tid = -1)
+            : fiber_(std::move(fiber)), cb_(nullptr), tid_(tid) {
         }
 
-         // 确定回调函数在哪个线程上跑
-        FiberAndThread(std::function<void()> f, int thr)
-            :cb(f), thread(thr) {
-
-        }
-
-        FiberAndThread(std::function<void()>* f, int thr)
-            :thread(thr) {
-                cb.swap(*f);
-        }
-
-        //STL内需要一个默认构造函数，否则分配出来的对象无法初始化，如下方list
-        FiberAndThread() :thread(-1) {
+        explicit SchedulerTask(std::function<void()> func, uint32_t tid = -1)
+            : fiber_(nullptr), cb_(std::move(func)), tid_(tid) {
         }
 
         void reset() {
-            fiber = nullptr;
-            cb = nullptr;
-            thread = -1;
+            fiber_ = nullptr;
+            cb_ = nullptr;
+            tid_ = -1;
         }
     };
 private:
-    MutexType m_mutex;
-    // 线程池
-    std::vector<Thread::ptr> m_threads;
-    // 待执行的协程队列
-    std::list<FiberAndThread> m_fibers;
-    // use_caller为true时有效, 调度协程
-    Fiber::ptr m_rootFiber;
-    // 协程调度器名称
-    std::string m_name;
+    Mutex mutex_;
+    /// 调度器名称
+    std::string name_;
+    /// 调度器是否正在停止
+    bool stopping_;
 
-protected:
-    std::vector<int> m_threadIds;
-    size_t m_threadCount = 0;
-    std::atomic<size_t> m_activeThreadCount = {0};
-    std::atomic<size_t> m_idleThreadCount = {0};
-    bool m_stopping = true;
-    bool m_autoStop = false;
-    // 主线程Id(use_caller)
-    int m_rootThread = 0;
+    /// 调度器需要调度的任务队列
+    std::list<SchedulerTask> tasks_;
+
+    /// 线程池
+    std::vector<Thread::ptr> threads_;
+    /// 除调度器所在线程之外的线程数量，子线程的数量，线程池的大小
+    uint32_t thread_num_;
+    /// 活跃线程数量
+    std::atomic_uint32_t active_thread_num_;
+    /// 空闲线程数量
+    std::atomic_uint32_t idle_thread_num_;
+
+    /// 调度器所在的线程是否参数调度
+    bool use_caller_;
+    /// use_caller_ 为 true 时，调度器所在线程的调度协程，和线程主协程不是同一个
+    Fiber::ptr caller_fiber_;
+    /// use_caller_ 为 true 时，调度器所在线程的线程 id
+    uint32_t caller_tid_;
 };
 
 

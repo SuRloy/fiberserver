@@ -1,24 +1,32 @@
 #include "fiber.h"
-#include "config.h"
-#include "macro.h"
+#include "utils/macro.h"
 #include "log.h"
 #include "scheduler.h"
 #include <atomic>
+#include <utility>
 
 namespace zy {
 
-static zy::Logger::ptr g_logger = ZY_LOG_NAME("system");
-
+// 只增不减，用来标识唯一的协程
 static std::atomic<uint64_t> s_fiber_id {0};
-static std::atomic<uint64_t> s_fiber_count {0};
+// 可增可减，用来记录当前正在运行的线程数量（进程级别）
+static std::atomic<uint64_t> s_fiber_num {0};
 
-// 当前协程，初始化为主协程
-static thread_local Fiber* t_fiber = nullptr;
+/**
+ * @brief 当前线程正在执行的协程，裸指针
+ * @note 为什么不使用智能指针？是因为有可能出现循环引用的问题。
+ * 但更现实的问题是在实现过程中，无论是在 SetThis() 的参数中使用智能指针还是裸指针都会有问题。
+ * 使用智能指针，在函数内赋值没问题，但是由于 SetThis() 会在构造函数内被调用，此时对象尚未构造完成，shared_from_this() 出错
+ * 使用裸指针，在未构造完成的对象内使用 this 指针没问题，可以正常将值传递给 SetThis()，但是将裸指针赋值给智能指针会有问题。
+ * 加上 t_thread_fiber 指示当前正在运行的协程，会不断改变指向，使用智能指针还有引用计数等的问题要分析，综上，使用裸指针实现简单。
+ * 但是用户在构造 Fiber 对象时可能会使用 Fiber::ptr，所以还会出现裸指针与智能指针混用的问题，无论怎样都没有想到一个完美的解决方案。
+ */
+static thread_local Fiber* t_thread_fiber = nullptr;
+
 // 主协程
-static thread_local Fiber::ptr t_threadFiber = nullptr;
-
-static ConfigVar<uint32_t>::ptr g_fiber_stack_size =
-    Config::Lookup<uint32_t>("fiber.stack_size", 128 * 1024, "fiber stack size");
+static thread_local Fiber::ptr t_main_fiber = nullptr;
+// 默认的协程栈空间大小
+static const uint32_t stack_size = 128 * 1024;
 
 class MallocStackAllocator {
 public:
@@ -33,226 +41,175 @@ public:
 
 using StackAllocator = MallocStackAllocator;
 
-uint64_t Fiber::GetFiberId() {
-    if (t_fiber) {
-        return t_fiber->getId();
-    }
-    return 0;
-}
 
 //主协程的构造
-Fiber::Fiber() {
-    m_state = EXEC;
+Fiber::Fiber()
+    : id_(s_fiber_id++), state_(RUNNING), stack_size_(0), run_in_scheduler_(false) {
+    ++s_fiber_num;
     SetThis(this);
 
-    // 获取当前协程的上下文信息保存到m_ctx中
-    if (getcontext(&m_ctx)) {
+    // 获取当前协程的上下文信息保存到ctx_中
+    if (::getcontext(&ctx_)) {
         ZY_ASSERT2(false, "getcontext");
     }
 
-    ++s_fiber_count;
-
-    ZY_LOG_DEBUG(g_logger) << "Fiber::Fiber main";
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "Fiber::Fiber main";
 }
 
 //子协程的构造
-Fiber::Fiber(std::function<void()> cb, size_t stacksize, bool use_caller)
-    :m_id(++s_fiber_id)
-    ,m_cb(cb) {
-    ++s_fiber_count;
-    // 若给了初始化值则用给定值，若没有则用约定值
-    m_stacksize = stacksize ? stacksize : g_fiber_stack_size->getValue();
+Fiber::Fiber(fiber_func func, bool run_in_scheduler)
+        : id_(s_fiber_id++), state_(READY), cb_(std::move(func))
+        , stack_size_(stack_size), run_in_scheduler_(run_in_scheduler) {
+    ++s_fiber_num;
 
     // 获得协程运行指针
-    m_stack = StackAllocator::Alloc(m_stacksize);
-    // 保存当前协程上下文信息到m_ctx中
-    if (getcontext(&m_ctx)) {
+    stack_ = StackAllocator::Alloc(stack_size_);
+    // 保存当前协程上下文信息到ctx_中
+    if (::getcontext(&ctx_)) {
         ZY_ASSERT2(false, "getcontext");
     }
+
+    // 当前上下文结束之后运行的上下文为空，那么在本协程运行结束时必须要调用 setcontext 或 swapcontext 以重新指定一个有效的上下文，
+    // 否则程序就跑飞了，在代码中体现为 Fiber::MainFunc 的最后 yield 一次，在 yield 中恢复了主协程的运行
+
     // uc_link为空，执行完当前context之后退出程序。
-    m_ctx.uc_link = nullptr;
+    ctx_.uc_link = nullptr;
     // 初始化栈指针
-    m_ctx.uc_stack.ss_sp = m_stack;
+    ctx_.uc_stack.ss_sp = stack_;
     // 初始化栈大小
-    m_ctx.uc_stack.ss_size = m_stacksize;
+    ctx_.uc_stack.ss_size = stack_size_;
 
-    if(!use_caller) {
-        makecontext(&m_ctx, &Fiber::Mainfunc, 0);
-    } else {
-        makecontext(&m_ctx, &Fiber::CallerMainfunc, 0);
-    }
+    makecontext(&ctx_, &Fiber::Mainfunc, 0);
 
-    ZY_LOG_DEBUG(g_logger) << "Fiber::Fiber id = " << m_id;
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "Fiber::Fiber id = " << id_;
 }
 
 Fiber::~Fiber() {
-    --s_fiber_count;
+    --s_fiber_num;
     // 子协程
-    if (m_stack) {
+    if (stack_) {
         // 不在准备和运行状态
-        ZY_ASSERT(m_state == TERM 
-                || m_state == EXCEPT
-                || m_state == INIT);
+        ZY_ASSERT(state_ == TERM);
         // 释放运行栈
-        MallocStackAllocator::Dealloc(m_stack, m_stacksize);
+        MallocStackAllocator::Dealloc(stack_, stack_size_);
     } else {
-        ZY_ASSERT(!m_cb);
-        ZY_ASSERT(m_state == EXEC);
+        ZY_ASSERT(!cb_);
+        ZY_ASSERT(state_ == RUNNING);
         //主协程的释放要保证没有任务并且当前正在运行
         //若当前协程为主协程，将当前协程置为空
-        Fiber* cur = t_fiber;
+        Fiber* cur = t_thread_fiber;
         if (cur == this) {
             SetThis(nullptr);
         }
     }
-    ZY_LOG_DEBUG(g_logger) << "Fiber::~Fiber id = " << m_id;
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "Fiber::~Fiber id = " << id_;
 }
-//重置协程函数，并重置状态INIT,TERM
+
 void Fiber::reset(std::function<void()> cb) {
-    ZY_ASSERT(m_stack);
-    ZY_ASSERT(m_state == TERM 
-            || m_state == EXCEPT
-            || m_state == INIT);
-    m_cb = cb;
-    if (getcontext(&m_ctx)) {
+    ZY_ASSERT(stack_);
+    ZY_ASSERT(state_ == TERM);
+    cb_ = cb;
+    if (getcontext(&ctx_)) {
         ZY_ASSERT2(false, "getcontext");
     }
-    m_ctx.uc_link = nullptr;
-    m_ctx.uc_stack.ss_sp = m_stack;
-    m_ctx.uc_stack.ss_size = m_stacksize;
+    ctx_.uc_link = nullptr;
+    ctx_.uc_stack.ss_sp = stack_;
+    ctx_.uc_stack.ss_size = stack_size;
 
-    makecontext(&m_ctx, &Fiber::Mainfunc, 0);
-    m_state = INIT;
+    makecontext(&ctx_, &Fiber::Mainfunc, 0);
 }
 
-// 从调度器的主协程切换到当前协程
-void Fiber::call() {
-    SetThis(this);
-    m_state = EXEC;
-    //ZY_LOG_ERROR(g_logger) << getId();
-    if (swapcontext(&t_threadFiber->m_ctx, &m_ctx)) {
-        ZY_ASSERT2(false, "swapcontext");
+void Fiber::yield() {
+    ZY_ASSERT(state_ == RUNNING || state_ == TERM);
+
+    if (state_ == RUNNING) {
+        state_ = READY;
+    }
+    if (run_in_scheduler_) {
+        SetThis(Scheduler::GetSchedulerFiber());        // 当前协程退出执行，要将线程正在执行的协程修改为调度协程
+        if (swapcontext(&ctx_, &(Scheduler::GetSchedulerFiber()->ctx_))) {
+            ZY_ASSERT2(false, "swapcontext error");
+        }
+    } else {
+        SetThis(t_main_fiber.get());                    // 当前协程退出执行，要将线程正在执行的协程修改为主协程
+        // 当前协程栈空间保存在第一个参数里，从第二个参数读出协程占空间恢复执行
+        if (swapcontext(&ctx_, &(t_main_fiber->ctx_))) {
+            ZY_ASSERT2(false, "swapcontext error");
+        }
     }
 }
 
-// 从当前协程切换到调度器主协程
-void Fiber::back() {
-    SetThis(t_threadFiber.get());
-    if(swapcontext(&m_ctx, &t_threadFiber->m_ctx)) {
-        ZY_ASSERT2(false, "swapcontext");
+void Fiber::resume() {
+    ZY_ASSERT(state_ == READY);
+
+    SetThis(this);                                  // 当前协程需要恢复执行，要将线程正在执行的协程修改为当前协程
+    state_ = RUNNING;
+    if (run_in_scheduler_) {
+        if (swapcontext(&(Scheduler::GetSchedulerFiber()->ctx_), &ctx_)) {
+            ZY_ASSERT2(false, "swapcontext error");
+        }
+    } else {
+        // 当前协程栈空间保存在第一个参数里，从第二个参数读出协程占空间恢复执行
+        if (swapcontext(&(t_main_fiber->ctx_), &ctx_)) {
+            ZY_ASSERT2(false, "swapcontext error");
+        }
     }
 }
 
-// 从协程主协程切换到当前协程
-void Fiber::swapIn() {
-    SetThis(this);
-    ZY_ASSERT(m_state != EXEC);
-    m_state = EXEC;
-    if (swapcontext(&Scheduler::GetMainFiber()->m_ctx, &m_ctx)) {
-        ZY_ASSERT2(false, "swapcontext");
-    }
+void Fiber::InitMainFiber() {
+    t_main_fiber = Fiber::ptr(new Fiber);           // 创建主协程
+    ZY_ASSERT(t_main_fiber);                         // 现在有主协程了
+    ZY_ASSERT(t_thread_fiber == t_main_fiber.get()); // 当前正在运行的协程就是主协程
 }
 
-// 从当前协程切换到主协程
-void Fiber::swapOut() {
-    SetThis(Scheduler::GetMainFiber());
-    if (swapcontext(&m_ctx, &Scheduler::GetMainFiber()->m_ctx)) {
-        ZY_ASSERT2(false, "swapcontext");
-    }
-}
-
-//设置当前协程
 void Fiber::SetThis(Fiber* f) {
-    t_fiber = f;
+    t_thread_fiber = f;
 }
-//返回当前协程,没有协程说明目前是主协程
+
 Fiber::ptr Fiber::GetThis() {
-    if (t_fiber) {
-        return t_fiber->shared_from_this();
+    return t_thread_fiber->shared_from_this();
+}
+
+uint32_t Fiber::GetFiberId() {
+    if (!t_thread_fiber) {
+        return -1;
     }
-    // 获得主协程
-    Fiber::ptr main_fiber(new Fiber);
-    ZY_ASSERT(t_fiber == main_fiber.get());
-    t_threadFiber = main_fiber;
-    return t_fiber->shared_from_this();
+    return t_thread_fiber->getId();
 }
-//协程切换到后台，并且设置为Ready状态
-void Fiber::YieldToReady() {
-    Fiber::ptr cur = GetThis();
-    cur->m_state = READY;
-    cur->swapOut();
-}
-//协程切换到后台，并且设置为Hold状态
-void Fiber::YieldToHold() {
-    Fiber::ptr cur = GetThis();
-    cur->m_state = HOLD;
-    cur->swapOut();
-}
-//总协程数
-uint64_t Fiber::TotalFibers() {
-    return s_fiber_count;
+
+uint32_t Fiber::TotalFibers() {
+    return s_fiber_num;
 }
 
 void Fiber::Mainfunc() {
     // 获得当前协程
-    Fiber::ptr cur = GetThis();
+    auto cur = GetThis();
     ZY_ASSERT(cur);
     try {
         // 执行任务
-        cur->m_cb();
-        cur->m_cb = nullptr;
+        cur->cb_();
+        cur->cb_ = nullptr;
         // 将状态设置为结束
-        cur->m_state = TERM;
+        cur->state_ = TERM;
     } catch (std::exception& ex) {
-        cur->m_state = EXCEPT;
-        ZY_LOG_ERROR(g_logger) << "Fiber Except: " << ex.what()
+        cur->state_ = EXCEPT;
+        ZY_LOG_ERROR(ZY_LOG_ROOT()) << "Fiber Except: " << ex.what()
             << " fiber_id=" << cur->getId()
             << std::endl
-            << zy::BacktraceToString();
+            << zy::backtraceToString();
     } catch (...) {
-        cur->m_state = EXCEPT;
-        ZY_LOG_ERROR(g_logger) << "Fiber Except: "
+        cur->state_ = EXCEPT;
+        ZY_LOG_ERROR(ZY_LOG_ROOT()) << "Fiber Except: "
             << " fiber_id=" << cur->getId()
             << std::endl
-            << zy::BacktraceToString();
+            << zy::backtraceToString();
     }
     // 获得裸指针
     auto raw_ptr = cur.get();
     // 引用-1，防止fiber释放不掉
     cur.reset();
     //执行完释放执行权
-    raw_ptr->swapOut();
-
-    ZY_ASSERT2(false, "never reach fiber_id=" + std::to_string(raw_ptr->getId()));
-}
-
-//use_caller运行的方法
-void Fiber::CallerMainfunc() {
-    Fiber::ptr cur = GetThis();
-    ZY_ASSERT(cur);
-    try {
-        // 执行任务
-        cur->m_cb();
-        cur->m_cb = nullptr;
-        // 将状态设置为结束
-        cur->m_state = TERM;
-    } catch (std::exception& ex) {
-        cur->m_state = EXCEPT;
-        ZY_LOG_ERROR(g_logger) << "Fiber Except: " << ex.what()
-            << " fiber_id=" << cur->getId()
-            << std::endl
-            << zy::BacktraceToString();
-    } catch (...) {
-        cur->m_state = EXCEPT;
-        ZY_LOG_ERROR(g_logger) << "Fiber Except: "
-            << " fiber_id=" << cur->getId()
-            << std::endl
-            << zy::BacktraceToString();
-    }
-    
-    auto raw_ptr = cur.get();
-    cur.reset();
-    raw_ptr->back();
+    raw_ptr->yield();
 
     ZY_ASSERT2(false, "never reach fiber_id=" + std::to_string(raw_ptr->getId()));
 }

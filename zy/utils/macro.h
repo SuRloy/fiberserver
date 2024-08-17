@@ -10,7 +10,7 @@
     if (!(x)) { \
         ZY_LOG_ERROR(ZY_LOG_ROOT()) << "ASSERTION: " #x \
             << "\nbacktrace:\n" \
-            << zy::BacktraceToString(100, 2, "    "); \
+            << zy::backtraceToString(100, 2, "    "); \
         assert(x); \
     }
 
@@ -19,7 +19,7 @@
         ZY_LOG_ERROR(ZY_LOG_ROOT()) << "ASSERTION: " #x \
             << "\n" << w \
             << "\nbacktrace:\n" \
-            << zy::BacktraceToString(100, 2, "    "); \
+            << zy::backtraceToString(100, 2, "    "); \
         assert(x); \
     }    
 

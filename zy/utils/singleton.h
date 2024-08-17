@@ -4,25 +4,17 @@
 #include "noncopyable.h"
 
 namespace zy {
+
 /**
  * @brief 单例模式模板类
  * @tparam T 类型
  */
-template<class T, class X = void, int N = 0>
-class Singleton {
+template<typename T>
+class Singleton : NonCopyable {
 public:
-    static T* GetInstance() {
-        static T v;
-        return &v;
-    }
-};
-
-template<class T, class X = void, int N = 0>
-class singleton {
-public:
-    static std::shared_ptr<T> GetInstance() {
-        static std::shared_ptr<T> v(new T);
-        return v;
+    static T &GetInstance() {
+        static T instance_;
+        return instance_;
     }
 };
 

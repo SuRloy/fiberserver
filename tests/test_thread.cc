@@ -1,55 +1,53 @@
-#include "zy/zy.h"
 #include <unistd.h>
+#include <iostream>
+#include "thread.h"
+#include "utils/mutex.h"
+#include "utils/util.h"
+#include "log.h"
 
-zy::Logger::ptr g_logger = ZY_LOG_ROOT();
+using namespace zy;
 
 int count = 0;
-//zy::RWMutex s_mutex;
-zy::Mutex s_mutex;
+Mutex s_mutex;
 
-void fun1() {
-    ZY_LOG_INFO(g_logger) << "name: " << zy::Thread::GetName()
-                             << " this.name: " << zy::Thread::GetThis()->getName()
-                             << " id: " << zy::GetThreadId()
-                             << " this.id: " << zy::Thread::GetThis()->getId();    
-    for (int i = 0; i < 100000; ++i) {
-        //zy::RWMutex::WriteLock lock(s_mutex);
-        zy::Mutex::Lock lock(s_mutex);
-        ++count;
+void thread_fun1() {
+    std::cout << "in thread1, name = " << Thread::GetThis()->getName() << std::endl;
+    for (int i = 0; i < 10; ++i) {
+        sleep(1);
+        std::cout << "in thread1:" << i << std::endl;
     }
 }
 
-void fun2() {
-    while (true) {
-        ZY_LOG_INFO(g_logger) << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-    }
-}
-
-void fun3() {
-    while (true) {
-        ZY_LOG_INFO(g_logger) << "======================================";
-    }
-}
-    
-int main(int argc, char** argv) {
-    ZY_LOG_INFO(g_logger) << "thread test begin";
-    YAML::Node root = YAML::LoadFile("../bin/conf/log2.yml");
-    zy::Config::LoadFromYaml(root);
-
-    std::vector<zy::Thread::ptr> thrs;
+void thread_fun2() {
+    std::cout << "in thread2, name = " << Thread::GetThis()->getName() << std::endl;
     for (int i = 0; i < 5; ++i) {
-        zy::Thread::ptr thr(new zy::Thread(&fun2, "name_" + std::to_string(i * 2)));
-        //zy::Thread::ptr thr2(new zy::Thread(&fun3, "name_" + std::to_string(i * 2 + 1)));
-        thrs.push_back(thr);
-        //thrs.push_back(thr2);
+        sleep(2);
+        std::cout << "in thread2:" << i << std::endl;
     }
+}
+
+void func3() {
+    // std::cout << "in thread3: name = " << Thread::GetThis()->getName() << ", " << getThreadName() << std::endl;
+    // std::cout << "in thread3: id = " << Thread::GetThis()->getId() << ", " << getThreadId() << std::endl;
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << "in thread3: name = " << Thread::GetThis()->getName() << ", " << getThreadName() << std::endl;
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << "in thread3: id = " << Thread::GetThis()->getId() << ", " << getThreadId() << std::endl;
+    while (count <= 10000) {
+        count++;
+    }
+}
+
+int main() {
+    std::vector<Thread::ptr> threads;
+    for(int i = 0; i < 3; i++) {
+        Thread::ptr thr(new Thread("thread_" + std::to_string(i), func3));
+        threads.push_back(thr);
+    }
+
+    for(int i = 0; i < 3; i++) {
+        threads[i]->join();
+    }
+
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << "count = " << count << std::endl;
     
-    for(size_t i = 0; i < thrs.size(); ++i) {
-        thrs[i]->join();
-    }
-    ZY_LOG_INFO(g_logger) << "thread test end";
-    ZY_LOG_INFO(g_logger) << "count=" << count;
-
-
     return 0;
 }

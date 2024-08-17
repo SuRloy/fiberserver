@@ -10,34 +10,59 @@
 namespace zy {
 
 
-class Thread {
+class Thread : NonCopyable {
 public:
-    typedef std::shared_ptr<Thread> ptr;
-    Thread(std::function<void()> cb, const std::string& name);
+    using ptr = std::shared_ptr<Thread>;
+    using thread_func = std::function<void()>;
+
+    /**
+     * @brief 构造函数
+     * @param name 线程名
+     * @param func 线程内执行的函数
+     */
+    Thread(const std::string name, thread_func cb);
+
+    /**
+     * @brief 析构函数
+     * @details 使用 detach 系统调用使得主线程与子线程分离，子线程结束后，资源自动回收
+     * @note 如果用户在构造函数之后调用了 join，那么这里的 detach 就没有作用了，因为 join 之后子线程已经结束了。
+     */
     ~Thread();
 
-    pid_t getId() const { return m_id;}
-    const std::string& getName() const { return m_name;}
-
+    /**
+     * @brief 阻塞等待线程执行完成
+     * @details 构造函数返回时，线程入口函数已经在执行了，join 方法是为了让主线程等待子线程执行完成。
+     */
     void join();
 
-    static Thread* GetThis();//返回当前线程指针
-    static const std::string& GetName();
+    /**
+     * @brief 获取当前正在执行的线程指针
+     * @return 当前正在执行的线程
+     */
+    static Thread* GetThis();
 
-    static void SetName(const std::string& name);
+    uint32_t getId() const { return id_;}
+    const std::string& getName() const { return name_;}
+
 private:
-    Thread(const Thread&) = delete;
-    Thread(const Thread&&) = delete;
-    Thread& operator=(const Thread&) = delete;
+    /**
+     * @brief 线程入口函数
+     * @param arg 线程执行时携带的参数
+     * @return 线程执行返回的结果
+     */
+    static void *MainThread(void *arg);
 
-    static void* run(void* arg);
 private:
-    pid_t m_id = -1;
-    pthread_t m_thread = 0;
-    std::function<void()> m_cb;
-    std::string m_name;
-
-    Semaphore m_semaphore;
+    /// 线程结构，标识一个线程
+    pthread_t thread_{};
+    /// 线程内部需要执行的函数
+    thread_func cb_;
+    /// 线程名
+    std::string name_;
+    /// 线程 id
+    uint32_t id_;
+    /// 信号量，用来保证线程初始化完成
+    Semaphore sem_;
 };
 
 }

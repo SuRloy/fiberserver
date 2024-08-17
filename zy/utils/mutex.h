@@ -169,9 +169,10 @@ private:
             写日志的场景下使用自旋锁效率最高
             当一个线程尝试锁住已经被其他线程锁住的 spinlock 时，它并不会被阻塞，而是会一直循环（自旋）等待直到成功获得锁。
  */
-class SpinLock {
+class SpinLock : NonCopyable {
 public:
     using Lock = ScopedLockImpl<SpinLock>;
+    
     SpinLock() {
         pthread_spin_init(&m_mutex, 0);
     }

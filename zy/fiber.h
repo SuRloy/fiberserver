@@ -4,72 +4,124 @@
 #include <memory>
 #include <functional>
 #include <ucontext.h>
+#include "utils/noncopyable.h"
 
 
 namespace zy {
 
-class Scheduler;
-
+/// @brief 协程类
 class Fiber : public std::enable_shared_from_this<Fiber> {
-friend class Scheduler;
+
 public:
-    typedef std::shared_ptr<Fiber> ptr;
+    using ptr = std::shared_ptr<Fiber>;
+
+    /**
+     * @brief 协程内需要执行的任务
+     */
+    using fiber_func = std::function<void()>;
 
     enum State {
-        INIT,
-        HOLD,
-        EXEC,
-        TERM,
         READY,
-        EXCEPT
+        RUNNING,
+        TERM,
+        EXCEPT,
     };
 private:
-    //线程变为主协程
+    /**
+     * @brief 私有无参构造函数，用来构造线程的第一个协程，即线程对应的主协程
+     * @details 主协程与普通协程不同，没有需要执行的函数，没有协程栈空间，创建之后就处于运行态
+     */
     Fiber();
 
 public:
-    //创建协程
-    Fiber(std::function<void()> cb, size_t stacksize = 0, bool use_caller = false);
+    /**
+     * @brief 构造函数
+     * @param func 协程内需要执行的任务
+     * @param run_in_scheduler 本协程是否接受协程调度器调度
+     */
+    explicit Fiber(fiber_func cb, bool run_in_scheduler = true);
+
+    /**
+     * @brief 析构函数
+     */
     ~Fiber();
 
-    void reset(std::function<void()> cb);//重置协程函数，并重置状态INIT,TERM
-    void swapIn();//切换到当前协程执行
-    void swapOut();//切换到后台执行
+    /**
+     * @brief 重置协程运行状态，复用协程栈空间
+     * @param func 新的协程内需要执行的任务
+     */
+    void reset(fiber_func cb);
 
-    void call();
-    void back();
+    /**
+     * @brief 让出该线程的执行权，在子协程被调用
+     */
+    void yield();
 
-    uint64_t getId() const { return m_id;}
+    /**
+     * @brief 恢复该线程的执行权，在主协程被调用
+     */
+    void resume();    
 
-    State getState() const { return m_state;}
+    uint64_t getId() const { return id_;}
+    State getState() const { return state_;}
+
 public:
-    //设置当前协程
-    static void SetThis(Fiber* f);
-    //程序拿到自己的协程
+    /**
+     * @brief 初始化主协程
+     * @note 主线程的初始化函数
+     */
+    static void InitMainFiber();
+
+    /**
+     * @brief 将该协程设置为当前正在运行的协程
+     * @param fiber 需要被设置的协程
+     * @note static 全局只有一个，即进程级别，会根据当前正在执行的线程使用对应的线程局部变量
+     */
+    static void SetThis(Fiber *fiber);
+
+    /**
+     * @brief 获取当前正在运行的协程
+     * @return 当前正在运行的协程
+     * @note static 全局只有一个，即进程级别，会根据当前正在执行的线程使用对应的线程局部变量
+     * @details 这里需要返回智能指针，因为后续很多模块都是使用的智能指针，若是在这里返回裸指针，让后续模块自行转换为智能指针
+     * 会导致引用计数的问题，如果其智能指针的引用计数变为零，但是该协程对象还在运行，此时析构时运行状态的断言会出错，其根本原因在这里
+     */
     static Fiber::ptr GetThis();
-    //协程切换到后台，并且设置为Ready状态
-    static void YieldToReady();
-    //协程切换到后台，并且设置为Hold状态
-    static void YieldToHold();
-    //总协程数
-    static uint64_t TotalFibers();
 
-    //执行完成返回到线程主协程
+    /**
+     * @brief 获取当前正在运行的协程的 id
+     * @return 当前正在运行的协程的 id
+     */
+    static uint32_t GetFiberId();
+
+    /**
+     * @brief 获取当前正在运行的协程数量，该值跨线程
+     * @return 当前正在运行的协程数量
+     */
+    static uint32_t TotalFibers();
+
+    /**
+     * @brief 协程入口函数，在本函数内调用构造函数内传入的 func
+     */
     static void Mainfunc();
-    //执行完成返回到线程调度协程
-    static void CallerMainfunc();
 
-    static uint64_t GetFiberId();
 private:
-    uint64_t m_id = 0;
-    uint32_t m_stacksize = 0;
-    State m_state = INIT;
+    /// 协程 id
+    uint64_t id_;
+    /// 协程运行状态
+    State state_;
+    /// 协程内实际执行的函数
+    fiber_func cb_;
 
-    // 上下文
-    ucontext_t m_ctx;
-    void* m_stack = nullptr;
+    /// 协程栈大小
+    uint32_t stack_size_;
+    /// 上下文
+    ucontext_t ctx_{};
+    /// 协程栈地址
+    void* stack_{};
 
-    std::function<void()> m_cb;
+    /// 是否参与协程调度器调度
+    bool run_in_scheduler_;
 };
 
 

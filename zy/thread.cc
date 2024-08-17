@@ -1,33 +1,49 @@
 #include "thread.h"
 #include "log.h"
-#include "util.h"
+#include "utils/util.h"
 
 namespace zy {
 //static thread_local 通常用于修饰静态变量，以便每个线程都有一个独立的静态变量实例
 static thread_local Thread* t_thread = nullptr;
 static thread_local std::string t_thread_name = "";
 
-static zy::Logger::ptr g_logger = ZY_LOG_NAME("system");
 
-Semaphore::Semaphore(uint32_t count) {
-    if (sem_init(&m_semaphore, 0, count)) {
-        throw std::logic_error("sem_init error");
+Thread::Thread(const std::string name, std::function<void()> cb)
+    :cb_(std::move(cb)), name_(std::move(name)), id_(-1) {
+    if(name.empty()) {
+        name_ = "UNKOWN";
     }
-}
-
-Semaphore::~Semaphore() {
-    sem_destroy(&m_semaphore);
-}
-
-void Semaphore::wait() {
-    if (sem_wait(&m_semaphore)) {
-        throw std::logic_error("sem_wait error");
+    // pthread_create 执行之后，Thread::MainThread 就已经开始运行
+    int rt = pthread_create(&thread_, nullptr, &Thread::MainThread, this);
+    if(rt) {
+        ZY_LOG_ERROR(ZY_LOG_ROOT()) << "pthread_create thread fail, rt=" << rt
+            << " name=" << name;
+        throw std::logic_error("pthread_create error");
     }
+    sem_.wait();//保证回来之后线程Id初始好
 }
 
-void Semaphore::notify() {
-    if (sem_post(&m_semaphore)) {
-        throw std::logic_error("sem_post error");
+Thread::~Thread() {
+        // // 如果主线程结束时子线程还没结束，那么分离主线程和子线程
+        if (thread_) {
+            int rt = pthread_detach(thread_);
+            if (rt) {
+                ZY_LOG_ERROR(ZY_LOG_ROOT()) << "pthread_detach error";
+            }
+        }
+}
+
+//join 的作用是主线程等待被调用 join 的线程执行完毕。pthread_join需要阻塞等待线程结束并获取其[退出状态]
+//这是一种协同的线程管理方式，确保主线程在子线程结束之前不会继续执行
+void Thread::join() {
+    if(thread_) {
+        int rt = pthread_join(thread_, nullptr);//如果有值说明线程还未结束
+        if(rt) {
+            ZY_LOG_ERROR(ZY_LOG_ROOT()) << "pthread_join thread fail, rt=" << rt
+                << " name=" << name_;
+            throw std::logic_error("pthread_join error");
+        }
+        thread_ = 0;
     }
 }
 
@@ -35,68 +51,20 @@ Thread* Thread::GetThis() {
     return t_thread;
 }
 
-const std::string& Thread::GetName() {
-    return t_thread_name;
-}
 
-void Thread::SetName(const std::string& name) {
-    if(name.empty()) {
-        //ZY_LOG_DEBUG(g_logger) << "no name";
-        return;
-    }
-    if(t_thread) {
-        t_thread->m_name = name;
-    }
-    t_thread_name = name;
-}
-
-Thread::Thread(std::function<void()> cb, const std::string& name)
-    :m_cb(cb)
-    ,m_name(name) {
-    if(name.empty()) {
-        m_name = "UNKOWN";
-    }
-    int rt = pthread_create(&m_thread, nullptr, &Thread::run, this);//如果有值说明已经创建了
-    if(rt) {
-        ZY_LOG_ERROR(g_logger) << "pthread_create thread fail, rt=" << rt
-            << " name=" << name;
-        throw std::logic_error("pthread_create error");
-    }
-    m_semaphore.wait();//保证回来之后线程Id初始好
-}
-
-Thread::~Thread() {
-    if(m_thread) {
-        pthread_detach(m_thread);//线程分离,结束时会自动回收其资源
-    }
-}
-
-//join 的作用是主线程等待被调用 join 的线程执行完毕。pthread_join需要阻塞等待线程结束并获取其[退出状态]
-//这是一种协同的线程管理方式，确保主线程在子线程结束之前不会继续执行
-void Thread::join() {
-    if(m_thread) {
-        int rt = pthread_join(m_thread, nullptr);//如果有值说明线程还未结束
-        if(rt) {
-            ZY_LOG_ERROR(g_logger) << "pthread_join thread fail, rt=" << rt
-                << " name=" << m_name;
-            throw std::logic_error("pthread_join error");
-        }
-        m_thread = 0;
-    }
-}
-
-void* Thread::run(void* arg) {
-    Thread* thread = (Thread*)arg;
+void* Thread::MainThread(void* arg) {
+    Thread* thread = static_cast<Thread *>(arg);
+    // 设置当前线程的 id
+    thread->id_ = getThreadId();
+    // 设置当前线程的名字
+    setThreadName(thread->getName());
+    
     t_thread = thread;
-    t_thread_name = thread->m_name;
-    thread->m_id = zy::GetThreadId();
-    pthread_setname_np(pthread_self(), thread->m_name.substr(0, 15).c_str());
-
+    // swap 交换空间之后，两个线程的执行就不会相互影响了
     std::function<void()> cb;
-    cb.swap(thread->m_cb);//TODO:有特殊用处
+    cb.swap(t_thread->cb_);
 
-    thread->m_semaphore.notify();
-
+    t_thread->sem_.notify();
     cb();
     return 0;
 }

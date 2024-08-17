@@ -1,0 +1,4 @@
+/home/ubuntu/fiberserver/CMakeFiles/rebuild_cache.dir
+/home/ubuntu/fiberserver/CMakeFiles/zy.dir
+/home/ubuntu/fiberserver/CMakeFiles/edit_cache.dir
+/home/ubuntu/fiberserver/CMakeFiles/test_thread.dir
