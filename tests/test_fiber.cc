@@ -3,39 +3,40 @@
 #include <thread>
 #include <iostream>
 #include "fiber.h"
+#include "log.h"
 
 using namespace zy;
 
 void run_in_fiber1() {
-    std::cout << "run in fiber1 start" << std::endl;
-    std::cout << "run in fiber1 yield" << std::endl;
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "run in fiber1 start";
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "run in fiber1 yield";
     Fiber::GetThis()->yield();
-    std::cout << "run in fiber1 end" << std::endl;
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "run in fiber1 end";
 }
 
 void run_in_fiber2() {
-    std::cout << "run in fiber2 start" << std::endl;
-    std::cout << "run in fiber2 end" << std::endl;
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "run in fiber2 start";
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "run in fiber2 end";
 }
 
 // 线程函数
 void test_fiber() {
-    std::cout << "test_fiber start" << std::endl;
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "test_fiber start";
     Fiber::InitMainFiber();
     Fiber::ptr fiber(new Fiber(run_in_fiber1, false));
 
-    std::cout << "do something" << std::endl;
-    std::cout << "test_fiber yield" << std::endl;
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "do something";
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "test_fiber yield";
     fiber->resume();
-    std::cout << "test_fiber resume and yield" << std::endl;
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "test_fiber resume and yield";
 
     fiber->resume();
 
-    std::cout << "test_fiber switch to run in fiber2" << std::endl;
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "test_fiber switch to run in fiber2";
     fiber->reset(run_in_fiber2);
     fiber->resume();
 
-    std::cout << "test_fiber end" << std::endl;
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "test_fiber end";
 }
 int main() {
     std::thread t(test_fiber);

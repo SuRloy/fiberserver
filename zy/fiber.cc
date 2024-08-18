@@ -108,7 +108,9 @@ Fiber::~Fiber() {
 void Fiber::reset(std::function<void()> cb) {
     ZY_ASSERT(stack_);
     ZY_ASSERT(state_ == TERM);
-    cb_ = cb;
+
+    state_ = READY;
+    cb_ = std::move(cb);
     if (getcontext(&ctx_)) {
         ZY_ASSERT2(false, "getcontext");
     }

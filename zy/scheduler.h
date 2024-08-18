@@ -8,9 +8,12 @@
 #include "fiber.h"
 #include "utils/mutex.h"
 #include "utils/noncopyable.h"
+#include <limits>
 
 namespace zy {
 
+
+const uint32_t INVALID_TID = std::numeric_limits<uint32_t>::max();
 /**
  * @brief 协程调度器，可以被继承
  */
@@ -51,13 +54,13 @@ public:
      * @param tid 指定在某一个线程执行
      */
     template<class Task>
-    void addTask(Task t, uint32_t tid = -1) {
+    void addTask(Task t, uint32_t tid = INVALID_TID) {
         bool need_tickle = false;
         {
             Mutex::Lock lock(mutex_);
             need_tickle = tasks_.empty();
             SchedulerTask task(t, tid);
-            if (task.fiber || task.cb) {
+            if (task.fiber_ || task.cb_) {
                 tasks_.push_back(task);//存入fiber列表中
             }
         }
@@ -105,11 +108,6 @@ public:
      * @brief 获取当前线程的调度协程
      * @return 当前线程的调度协程
      */    
-    static Fiber* Scheduler::GetSchedulerFiber();
-    /**
-     * @brief 获得当前线程的调度协程
-     * @return 当前线程的调度协程
-     */
     static Fiber *GetSchedulerFiber();
 
 
@@ -120,13 +118,13 @@ private:
         // 线程id 协程在哪个线程上 
         uint32_t tid_;
 
-        SchedulerTask() : fiber_(nullptr), cb_(nullptr), tid_(-1) {}
+        SchedulerTask() : fiber_(nullptr), cb_(nullptr), tid_(INVALID_TID) {}
 
-        explicit SchedulerTask(Fiber::ptr fiber, uint32_t tid = -1)
+        explicit SchedulerTask(Fiber::ptr fiber, uint32_t tid = INVALID_TID)
             : fiber_(std::move(fiber)), cb_(nullptr), tid_(tid) {
         }
 
-        explicit SchedulerTask(std::function<void()> func, uint32_t tid = -1)
+        explicit SchedulerTask(std::function<void()> func, uint32_t tid = INVALID_TID)
             : fiber_(nullptr), cb_(std::move(func)), tid_(tid) {
         }
 

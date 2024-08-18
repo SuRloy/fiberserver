@@ -20,6 +20,8 @@ set(LIB_SRC
     zy/log.cc
     zy/utils/util.cc
     zy/thread.cc
+    zy/fiber.cc
+    zy/scheduler.cc
     )
 
 set(LIBS
@@ -29,6 +31,9 @@ set(LIBS
 
 add_executable(test_thread "tests/test_thread.cc" ${LIB_SRC})
 target_link_libraries(test_thread ${LIBS})
+
+add_executable(test_fiber "tests/test_fiber.cc" ${LIB_SRC})
+target_link_libraries(test_fiber ${LIBS})
 
 add_library(zy SHARED ${LIB_SRC})
 

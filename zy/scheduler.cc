@@ -54,7 +54,7 @@ void Scheduler::start() {
 
     threads_.resize(thread_num_);
     // 创建对应数量的子线程，子线程的入口函数也是子线程主协程的入口函数
-    for (int i = 0; i < thread_num_; ++i) {
+    for (uint32_t i = 0; i < thread_num_; ++i) {
         threads_[i].reset(
                 new Thread(name_ + "_" + std::to_string(i), std::bind(&Scheduler::run, this))
         );
@@ -126,7 +126,7 @@ void Scheduler::run() {
             auto it = tasks_.begin();
             while (it != tasks_.end()) {
                 //it的协程并非指名的协程，则跳过，并且tickle一下
-                if (it->tid_ != -1 && it->tid_ != zy::getThreadId()) {
+                if (it->tid_ != INVALID_TID && it->tid_ != zy::getThreadId()) {
                     ++it;
                     tickle_me = true;
                     continue;
