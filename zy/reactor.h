@@ -1,6 +1,8 @@
-#ifndef __ZY_IOMANAGER_H__
-#define __ZY_IOMANAGER_H__
+#ifndef __ZY_REACTOR_H__
+#define __ZY_REACTOR_H__
 
+#include <atomic>
+#include "utils/noncopyable.h"
 #include "scheduler.h"
 #include "timer.h"
 

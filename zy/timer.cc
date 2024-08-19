@@ -1,5 +1,5 @@
 #include "timer.h"
-#include "util.h"
+#include "utils/util.h"
 
 namespace zy {
 
@@ -14,207 +14,152 @@ bool Timer::Comparator::operator() (const Timer::ptr& lhs
     if(!rhs) {
         return false;
     }
-    if(lhs->m_next < rhs->m_next) {
+    if(lhs->time_ < rhs->time_) {
         return true;
     }
-    if(rhs->m_next < lhs->m_next) {
+    if(rhs->time_ < lhs->time_) {
         return false;
     }
     return lhs.get() < rhs.get();
 }
 
-Timer::Timer(uint64_t ms, std::function<void()> cb,
-        bool recurring, TimerManager* manager)
-    :m_recurring(recurring)
-    ,m_ms(ms)
-    ,m_cb(cb)
-    ,m_manager(manager) {
-    m_next = zy::GetCurrentMS() + m_ms;
-}
 
-Timer::Timer(uint64_t next)
-    :m_next(next) {
-}
 
 bool Timer::cancel() {
-    TimerManager::RWMutexType::WriteLock lock(m_manager->m_mutex);
-    if (m_cb) {
-        m_cb = nullptr;
+    RWMutex::WriteLock lock(manager_->mutex_);
+    if (timer_cb_) {
+        timer_cb_ = nullptr;
         // 在set中找到自身定时器
-        auto it = m_manager->m_timers.find(shared_from_this());
+        auto it = manager_->timers_.find(shared_from_this());
         // 找到删除
-        m_manager->m_timers.erase(it);
+        manager_->timers_.erase(it);
         return true;
     }
     return false;
 }
 
 bool Timer::refresh() {
-    TimerManager::RWMutexType::WriteLock lock(m_manager->m_mutex);
-    if (!m_cb) {
+    RWMutex::WriteLock lock(manager_->mutex_);
+    if (!timer_cb_) {
         return false;
     }
     // 在set中找到自身定时器
-    auto it = m_manager->m_timers.find(shared_from_this());
-    if (it == m_manager->m_timers.end()) {
+    auto it = manager_->timers_.find(shared_from_this());
+    if (it == manager_->timers_.end()) {
         return false;
     }
     // 删除
-    m_manager->m_timers.erase(it);
+    manager_->timers_.erase(it);
     // 更新执行时间
-    m_next = zy::GetCurrentMS() + m_ms;
+    time_ = getCurrentTime() + period_;
     // 重新插入，这样能按最新的时间排序
-    m_manager->m_timers.insert(shared_from_this());
+    manager_->timers_.insert(shared_from_this());
     return true;
 }
 
-bool Timer::reset(uint64_t ms, bool from_now) {
-    // 若周期相同，不按当前时间计算
-    if(ms == m_ms && !from_now) {
-        return true;
-    }
-    TimerManager::RWMutexType::WriteLock lock(m_manager->m_mutex);
-    if(!m_cb) {
+bool Timer::reset(uint64_t period, bool from_now) {
+    RWMutex::WriteLock lock(manager_->mutex_);
+    if(!timer_cb_) {
         return false;
     }
     // 在set中找到自身定时器
-    auto it = m_manager->m_timers.find(shared_from_this());
-    if(it == m_manager->m_timers.end()) {
+    auto it = manager_->timers_.find(shared_from_this());
+    if (it == manager_->timers_.end()) {
         return false;
     }
     // 删除定时器
-    m_manager->m_timers.erase(it);
-    // 起始时间
-    uint64_t start = 0;
-    // 从现在开始计算
-    if(from_now) {
-        // 更新起始时间
-        start = zy::GetCurrentMS();
-    } else {
-        /* 起始时间为当时创建时的起始时间
-         * m_next = zy::GetCurrentMS() + m_ms; */
-        start = m_next - m_ms;
-    }
+    manager_->timers_.erase(it);
+
     // 更新数据
-    m_ms = ms;
-    m_next = start + m_ms;
+    period_ = period;
+    time_ = from_now ? getCurrentTime() + period_ : time_;
     // 重新加入set中
-    m_manager->addTimer(shared_from_this(), lock);
+    manager_->addTimer(shared_from_this(), lock);
     return true;
 }
 
-
-TimerManager::TimerManager() {
-    m_previousTime = zy::GetCurrentMS();
+Timer::Timer(uint64_t time)
+    : recurring_(false), period_(0), time_(time), timer_cb_(nullptr), manager_(nullptr) {
 }
 
-TimerManager::~TimerManager() {
-
+Timer::Timer(bool recurring, uint64_t period, std::function<void()> callback, TimerManager *manager)
+    : recurring_(recurring), period_(period), time_(getCurrentTime() + period_)
+    , timer_cb_(std::move(callback)), manager_(manager) {
 }
 
-Timer::ptr TimerManager::addTimer(uint64_t ms, std::function<void()> cb
-                        ,bool recurring) {
 
-    Timer::ptr timer(new Timer(ms, cb, recurring, this));
-    RWMutexType::WriteLock lock(m_mutex);
-    addTimer(timer, lock);
-    return timer;
+
+Timer::ptr TimerManager::addTimer(uint64_t period, std::function<void()> callback, bool recurring) {
+    Timer::ptr timer1(new Timer(recurring, period, std::move(callback), this));
+    RWMutex::WriteLock lock(mutex_);
+    addTimer(timer1, lock);
+    return timer1;
 }
 
-static void OnTimer(std::weak_ptr<void> weak_cond, std::function<void()> cb) {
-    std::shared_ptr<void> tmp = weak_cond.lock();
-    if (tmp) {
-        cb();
-    }
+Timer::ptr TimerManager::addCondTimer(uint64_t period, const std::function<void()>& cb,
+                                        const std::weak_ptr<void> &weak_cond, bool recurring) {
+    return addTimer(period, [weak_cond, cb]() {
+        std::shared_ptr<void> tmp = weak_cond.lock();
+        if (tmp) {
+            cb();
+        }
+    }, recurring);
 }
 
-Timer::ptr TimerManager::addTimer(uint64_t ms, std::function<void()> cb
-                        ,std::weak_ptr<void> weak_cond
-                        ,bool recurring) {
-    return addTimer(ms, std::bind(&OnTimer, weak_cond, cb), recurring);
-}  
-
-uint64_t TimerManager::getNextTimer() {
-    RWMutexType::ReadLock lock(m_mutex);
-    m_tickled = false;
+uint64_t TimerManager::getNextTime() {
+    RWMutex::ReadLock lock(mutex_);
+    tickled_ = false;
     // 如果没有定时器，返回一个最大值
-    if (m_timers.empty()) {
+    if (timers_.empty()) {
         return ~0ull;
     }
     // 拿到第一个定时器
-    const Timer::ptr& next = *m_timers.begin();
-    uint64_t now_ms = zy::GetCurrentMS();
+    const Timer::ptr& next = *timers_.begin();
+    uint64_t now_ms = getCurrentTime();
     // 如果当前时间 >= 该定时器的执行时间，说明该定时器已经超时了，该执行了
-    if (now_ms >= next->m_next) {
+    if (now_ms >= next->time_) {
         return 0;
     } else {
         // 还没超时，返回还要多久执行
-        return next->m_next - now_ms;
+        return next->time_ - now_ms;
     }
 }
 
 void TimerManager::listExpiredCb(std::vector<std::function<void()> >& cbs) {
-    uint64_t now_ms = zy::GetCurrentMS();
-    std::vector<Timer::ptr> expired;
     {
-        RWMutexType::ReadLock lock(m_mutex);
-        if (m_timers.empty()) {
+        RWMutex::ReadLock lock(mutex_);
+        if (timers_.empty()) {
             return;
         }
     }
-    RWMutexType::WriteLock lock(m_mutex);
 
-    bool rollover = detectClockRollover(now_ms);
-    if(!rollover && ((*m_timers.begin())->m_next > now_ms)) {
-        return;
-    }
-    
-    Timer::ptr now_timer(new Timer(now_ms));
-    auto it = rollover ? m_timers.end() : m_timers.lower_bound(now_timer);
-    while (it != m_timers.end() && (*it)->m_next == now_ms) {
-        ++it;
-    }
-    expired.insert(expired.begin(), m_timers.begin(), it);
-    m_timers.erase(m_timers.begin(), it);
-    cbs.reserve(expired.size());
+    uint64_t now = getCurrentTime();
+    std::vector<Timer::ptr> expired;
+    RWMutex::WriteLock lock(mutex_);
+    Timer::ptr timer1(new Timer(now));
+    auto it = timers_.upper_bound(timer1);
+    expired.insert(expired.begin(), timers_.begin(), it);
 
-    for (auto& timer : expired) {
-        cbs.push_back(timer->m_cb);
-        if (timer->m_recurring) {
-            timer->m_next = now_ms + timer->m_ms;
-            m_timers.insert(timer);
-        } else {
-            timer->m_cb = nullptr;
+    for (auto &timer : expired) {
+        cbs.push_back(timer->timer_cb_);
+        timers_.erase(timer);
+        if (timer->recurring_) {
+            timer->time_ = now + timer->time_;
+            timers_.insert(timer);
         }
     }
 }
 
-void TimerManager::addTimer(Timer::ptr val, RWMutexType::WriteLock& lock) {
-    auto it = m_timers.insert(val).first;
-    bool at_front = (it == m_timers.begin()) && !m_tickled;
-    if(at_front) {
-        m_tickled = true;
+void TimerManager::addTimer(const Timer::ptr &timer, RWMutex::WriteLock &lock) {
+    auto it = timers_.insert(timer).first;
+    if (it == timers_.begin() && !tickled_) {
+        tickled_ = true;
     }
     lock.unlock();
-
-    if(at_front) {
-        onTimerInsertedAtFront();
+    if (tickled_) {
+        onTimerInsertAtFront();
     }
 }
 
-bool TimerManager::detectClockRollover(uint64_t now_ms) {
-    bool rollover = false;
-    if(now_ms < m_previousTime &&
-            now_ms < (m_previousTime - 60 * 60 * 1000)) {
-        rollover = true;
-    }
-    m_previousTime = now_ms;
-    return rollover;
-}
-
-bool TimerManager::hasTimer() {
-    RWMutexType::ReadLock lock(m_mutex);
-    return !m_timers.empty();
-}
 
 }

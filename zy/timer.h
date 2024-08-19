@@ -1,32 +1,76 @@
 #ifndef __ZY_TIMER_H__
 #define __ZY_TIMER_H__
 
-#include <memory>
-#include "thread.h"
 #include <set>
+#include <memory>
 #include <vector>
+#include <functional>
+#include "utils/mutex.h"
 
 namespace zy {
 
-
 class TimerManager;
+
 class Timer : public std::enable_shared_from_this<Timer> {
-friend class TimerManager;
+    friend class TimerManager;
+
 public:
-    typedef std::shared_ptr<Timer> ptr;
+    using ptr = std::shared_ptr<Timer>;
+
+    /**
+     * @brief 定时器回调函数
+     */
+    using timer_callback = std::function<void()>;
+
+    /**
+     * @brief 取消定时器
+     * @return 操作是否成功
+     */
     bool cancel();
+
+    /**
+     * @brief 重新设置定时器的执行时间
+     * @details time_ = getCurrentTime() + period
+     * @return 操作是否成功
+     */
     bool refresh();
-    bool reset(uint64_t ms, bool from_now);
+
+    /**
+     * @brief 重置定时器
+     * @param period 新的周期
+     * @param from_now 是否重当前时间开始计时
+     * @return 操作是否成功
+     */
+    bool reset(uint64_t period, bool from_now);
+
 private:
-    Timer(uint64_t ms, std::function<void()> cb,
-        bool recurring, TimerManager* manager);
-    Timer(uint64_t next);
+    /**
+     * @brief 私有构造函数，用在 ClockManager::clocks_ 的二分查找中
+     * @param time 定时器发生的时间
+     */
+    explicit Timer(uint64_t time);
+
+    /**
+     * @brief 私有构造函数
+     * @param recurring 是否重复
+     * @param period 周期
+     * @param callback 定时器回调函数
+     * @param manager 所属的定时器管理器
+     */
+    Timer(bool recurring, uint64_t period, timer_callback cb,
+        TimerManager* manager);
+
 private:
-    bool m_recurring = false;   //是否循环定时器
-    uint64_t m_ms = 0;          //执行周期
-    uint64_t m_next = 0;        //精确的执行时间
-    std::function<void()> m_cb;
-    TimerManager* m_manager = nullptr;
+    //是否循环定时器
+    bool recurring_ = false;  
+    /// 执行周期
+    uint64_t period_ = 0;
+    //精确的执行时间
+    uint64_t time_ = 0;     
+    /// 定时器回调函数   
+    timer_callback timer_cb_;
+    /// 定时器所属的管理器
+    TimerManager* manager_ = nullptr;
 private:
     struct Comparator {
         bool operator() (const Timer::ptr& lhs, const Timer::ptr& rhs) const;
@@ -34,33 +78,71 @@ private:
 };
 
 class TimerManager {
-friend class Timer;
+    friend class Timer;
 public:
-    typedef RWMutex RWMutexType;
+    /**
+     * @brief 构造函数
+     */
+    TimerManager() : tickled_(false) {}
 
-    TimerManager();
+    /**
+     * @brief 默认虚析构函数
+     */
     virtual ~TimerManager();
 
-    Timer::ptr addTimer(uint64_t ms, std::function<void()> cb
+    /**
+     * @brief 向管理器新增一个定时器
+     * @param period 周期
+     * @param callback 定时器回调函数
+     * @param recurring 是否重复
+     * @return 新增的定时器智能指针
+     */
+    Timer::ptr addTimer(uint64_t period, Timer::timer_callback cb
                         ,bool recurring = false);
  
-    Timer::ptr addTimer(uint64_t ms, std::function<void()> cb
-                        ,std::weak_ptr<void> weak_cond
-                        ,bool recurring = false);  
-    uint64_t getNextTimer();
-    void listExpiredCb(std::vector<std::function<void()> >& cbs);
-    bool hasTimer();
+    /**
+     * @brief 向管理器新增一个条件定时器
+     * @param period 周期
+     * @param callback 定时器回调函数
+     * @param weak_cond 弱智能指针作为条件
+     * @param recurring 是否重复
+     * @return 新增的定时器智能指针
+     */ 
+    Timer::ptr addCondTimer(uint64_t period, const Timer::timer_callback& cb,
+                            const std::weak_ptr<void> &weak_cond, bool recurring = false);
+
+    /** 
+     * @brief 获得距离最近发生的定时器的时间
+     * @return 距离最近发生的定时器的时间
+     */    
+    uint64_t getNextTime();
+
+    /**
+     * @brief 列出所有超时的定时器需要执行的回调函数
+     * @param callbacks 所有需要执行的回调函数
+     */
+    void listExpiredCb(std::vector<Timer::timer_callback>& cbs);
+    
 protected:
-    virtual void onTimerInsertedAtFront() = 0;
-    void addTimer(Timer::ptr val, RWMutexType::WriteLock& lock);
+    /**
+     * @brief 当插入一个定时器到堆顶时需要执行的操作
+     */
+    virtual void onTimerInsertAtFront() {};
+
+    /**
+     * @brief 向管理器新增一个定时器，有锁
+     * @param timer 新增的定时器
+     * @param lock 写锁
+     */    
+    void addTimer(const Timer::ptr &timer, RWMutex::WriteLock& lock);
+
+
 private:
-    bool detectClockRollover(uint64_t now_ms);
-private:
-    RWMutexType m_mutex;
-    // 定时器集合
-    std::set<Timer::ptr, Timer::Comparator> m_timers; 
-    bool m_tickled = false; 
-    uint64_t m_previousTime = 0;             
+    RWMutex mutex_;
+    // 定时器集合,按发生时间排列
+    std::set<Timer::ptr, Timer::Comparator> timers_; 
+    // 是否需要通知
+    bool tickled_;           
 };
 
 }
