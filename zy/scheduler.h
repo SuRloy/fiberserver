@@ -8,12 +8,12 @@
 #include "fiber.h"
 #include "utils/mutex.h"
 #include "utils/noncopyable.h"
-#include <limits>
+#include "log.h"
 
 namespace zy {
 
 
-const uint32_t INVALID_TID = std::numeric_limits<uint32_t>::max();
+
 /**
  * @brief 协程调度器，可以被继承
  */
@@ -62,6 +62,7 @@ public:
             SchedulerTask task(t, tid);
             if (task.fiber_ || task.cb_) {
                 tasks_.push_back(task);//存入fiber列表中
+                //ZY_LOG_INFO(ZY_LOG_ROOT()) << "task pushed in";
             }
         }
         if (need_tickle) {
@@ -131,7 +132,7 @@ private:
         void reset() {
             fiber_ = nullptr;
             cb_ = nullptr;
-            tid_ = -1;
+            tid_ = INVALID_TID;
         }
     };
 private:

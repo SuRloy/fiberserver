@@ -81,11 +81,12 @@ void Scheduler::stop() {
         tickle();
     }
 
+    //ZY_LOG_INFO(ZY_LOG_ROOT()) << "before caller_fiber_ resume";
     // 使用use_caller，只要没达到停止条件，调度器退出时要调用 caller_fiber_
     if (caller_fiber_) {
         caller_fiber_->resume();
     }
-
+    
     std::vector<Thread::ptr> thrs;
     {
         Mutex::Lock lock(mutex_);
@@ -115,6 +116,7 @@ void Scheduler::run() {
         t_scheduler_fiber = Fiber::GetThis().get();
     }
     // 新建dile_fiber，当任务队列中的任务执行完之后，执行idle()
+    //ZY_LOG_INFO(ZY_LOG_ROOT()) << "before idle fiber";
     Fiber::ptr idle_fiber(new Fiber(std::bind(&Scheduler::idle, this)));
 
     static thread_local SchedulerTask task;
@@ -176,15 +178,16 @@ void Scheduler::run() {
 }
 
 void Scheduler::tickle() {
-    ZY_LOG_INFO(ZY_LOG_ROOT()) << "tickle";
+    //ZY_LOG_INFO(ZY_LOG_ROOT()) << "tickle in fiber " << Fiber::GetFiberId();
 }
 
 
 
 void Scheduler::idle() {
     ZY_LOG_INFO(ZY_LOG_ROOT()) << "idle";
-    // 此处的 idle 协程什么都不做，进来就退出
-    // 调度器可以停止时，就会退出 while 循环，idle 协程就执行结束了，协程状态变味了 TERM
+    // 此处的 idle 协程什么都不做，进来就yield()
+
+    // 调度器可以停止时，就会退出 while 循环，idle 协程就执行结束了，协程状态变为了 TERM
     // 之后 Scheduler::run() 的 while(true) 就会结束
     while (!stopping()) {
         Fiber::GetThis()->yield();

@@ -174,7 +174,7 @@ Fiber::ptr Fiber::GetThis() {
 
 uint32_t Fiber::GetFiberId() {
     if (!t_thread_fiber) {
-        return -1;
+        return INVALID_TID;
     }
     return t_thread_fiber->getId();
 }
