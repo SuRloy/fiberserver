@@ -29,11 +29,14 @@ set(LIBS
     pthread
     )
 
-add_executable(test_thread "tests/test_thread.cc" ${LIB_SRC})
-target_link_libraries(test_thread ${LIBS})
+# add_executable(test_thread "tests/test_thread.cc" ${LIB_SRC})
+# target_link_libraries(test_thread ${LIBS})
 
-add_executable(test_fiber "tests/test_fiber.cc" ${LIB_SRC})
-target_link_libraries(test_fiber ${LIBS})
+# add_executable(test_fiber "tests/test_fiber.cc" ${LIB_SRC})
+# target_link_libraries(test_fiber ${LIBS})
+
+add_executable(test_scheduler "tests/test_scheduler.cc" ${LIB_SRC})
+target_link_libraries(test_scheduler ${LIBS})
 
 add_library(zy SHARED ${LIB_SRC})
 
