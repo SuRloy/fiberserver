@@ -1,24 +1,71 @@
-#include "zy/zy.h"
+//
+// Created by liucxi on 2022/11/8.
+//
 
-static zy::Logger::ptr g_logger = ZY_LOG_ROOT();
+#include "scheduler.h"
+#include "utils/util.h"
+#include <iostream>
+#include "log.h"
 
-void test_fiber() {
-    static int s_count = 5;
-    ZY_LOG_INFO(g_logger) << "test in fiber s_count=" << s_count;
-    sleep(1);
-    if (--s_count >= 0) {
-        zy::Scheduler::GetThis()->schedule(&test_fiber, zy::GetThreadId());
-    }
+using namespace zy;
+
+void test_scheduler1() {
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " test_scheduler1 begin";
+
+    Scheduler::GetThis()->addTask(Fiber::GetThis()->shared_from_this());            // yield()前必须将自己再加入协程调度器
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << "before test_scheduler1 yield";
+    Fiber::GetThis()->yield();
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << "after test_scheduler1 yield";
+
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " test_scheduler1 end";
 }
 
-int main(int argc, char** argv) {
-    ZY_LOG_INFO(g_logger) << "main";
-    zy::Scheduler sc(3, false, "test");
-    sc.start();
-    sleep(2);
-    ZY_LOG_INFO(g_logger) << "schedule";
-    sc.schedule(&test_fiber);
-    sc.stop();
-    ZY_LOG_INFO(g_logger) << "over";
+void test_scheduler2() {
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " test_scheduler2 begin";
+
+    // sleep(3);
+
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " test_scheduler2 end";
+}
+
+void test_scheduler3() {
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " test_scheduler3 begin";
+
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " test_scheduler3 end";
+}
+
+void test_scheduler4() {
+    static int count = 0;
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " test_scheduler1 begin, i = " << count;
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " test_scheduler4 end, i = " << count;
+    ++count;
+}
+
+void test_scheduler5() {
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " test_scheduler5 begin";
+    for (int i = 0; i < 3; ++i) {
+        Scheduler::GetThis()->addTask(test_scheduler4, getThreadId());
+    }
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " test_scheduler5 end";
+}
+
+int main() {
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " main begin";
+    // Scheduler scheduler("scheduler");
+    // Scheduler scheduler("scheduler", 1, false);
+    Scheduler scheduler("scheduler", 1, true);
+
+    //scheduler.addTask(test_scheduler1);
+    // scheduler.addTask(test_scheduler2);
+
+    //scheduler.addTask(std::make_shared<Fiber>(test_scheduler3));//用户自己创建fiber
+
+    scheduler.start();//创建指定数量线程并绑定scheduler::run函数
+
+    scheduler.addTask(test_scheduler5);//test_scheduler5创建了三个任务，加入任务队列后创建任务协程调度完成任务并结束
+
+    scheduler.stop();//stop触发
+
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " main end";
     return 0;
 }
