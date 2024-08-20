@@ -4,8 +4,6 @@
 #include <limits>
 namespace zy {
 
-    const uint32_t INVALID_TID = std::numeric_limits<uint32_t>::max();
-
     class NonCopyable {
     public:
         NonCopyable(const NonCopyable &) = delete;

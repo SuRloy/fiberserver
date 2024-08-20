@@ -22,6 +22,8 @@ set(LIB_SRC
     zy/thread.cc
     zy/fiber.cc
     zy/scheduler.cc
+    zy/timer.cc
+    zy/reactor.cc
     )
 
 set(LIBS
@@ -37,6 +39,9 @@ set(LIBS
 
 add_executable(test_scheduler "tests/test_scheduler.cc" ${LIB_SRC})
 target_link_libraries(test_scheduler ${LIBS})
+
+# add_executable(test_timer "tests/test_timer.cc" ${LIB_SRC})
+# target_link_libraries(test_timer ${LIBS})
 
 add_library(zy SHARED ${LIB_SRC})
 

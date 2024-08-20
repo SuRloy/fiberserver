@@ -125,7 +125,7 @@ uint64_t TimerManager::getNextTime() {
     }
 }
 
-void TimerManager::listExpiredCb(std::vector<std::function<void()> >& cbs) {
+void TimerManager::listExpiredCallback(std::vector<std::function<void()> >& cbs) {
     {
         RWMutex::ReadLock lock(mutex_);
         if (timers_.empty()) {

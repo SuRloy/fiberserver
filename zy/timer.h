@@ -88,7 +88,7 @@ public:
     /**
      * @brief 默认虚析构函数
      */
-    virtual ~TimerManager();
+    virtual ~TimerManager() = default;
 
     /**
      * @brief 向管理器新增一个定时器
@@ -121,7 +121,7 @@ public:
      * @brief 列出所有超时的定时器需要执行的回调函数
      * @param callbacks 所有需要执行的回调函数
      */
-    void listExpiredCb(std::vector<Timer::timer_callback>& cbs);
+    void listExpiredCallback(std::vector<Timer::timer_callback>& cbs);
     
 protected:
     /**

@@ -1,457 +1,263 @@
-#include "iomanager.h"
-#include "macro.h"
-#include "log.h"
+#include "reactor.h"
 
+#include <utility>
 #include <unistd.h>
+#include <cstring>
 #include <sys/epoll.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <string.h>
+#include <sys/eventfd.h>
+#include <iostream>
+#include "log.h"
+#include "utils/macro.h"
 
 namespace zy {
 
-static zy::Logger::ptr g_logger = ZY_LOG_NAME("system");
+Channel::Channel(int fd, ReactorEvent::Event event) : fd_(fd), event_(event) {}
 
-IOManager::FdContext::EventContext& IOManager::FdContext::getContext(IOManager::Event event) {
+Channel::EventCallback &Channel::getEventCallback(ReactorEvent::Event event) {
     switch (event) {
-        case IOManager::READ:
-            return read;
-        case IOManager::WRITE:
-            return write;
+        case ReactorEvent::READ:
+            return read_;
+        case ReactorEvent::WRITE:
+            return write_;
         default:
-            ZY_ASSERT2(false, "getContext");
+            ZY_ASSERT2(false, "getEventCallback")
     }
 }
 
-void IOManager::FdContext::resetContext(IOManager::FdContext::EventContext& ctx) {
-    ctx.scheduler = nullptr;
-    ctx.fiber.reset();
-    ctx.cb = nullptr;
+void Channel::resetEventCallback(Channel::EventCallback &event_callback) {
+    event_callback.scheduler_ = nullptr;
+    event_callback.fiber_.reset();
+    event_callback.func_ = nullptr;
 }
 
-void IOManager::FdContext::triggerEvent(IOManager::Event event) {
-    ZY_ASSERT(events & event);
-    // 触发该事件就将该事件从注册事件中删掉
-    events = (Event)(events & ~event);
-    EventContext &ctx = getContext(event);
-    if (ctx.cb) {
-        // 使用地址传入就会将cb的引用计数-1
-        ctx.scheduler->schedule(&ctx.cb);
+void Channel::triggerEvent(ReactorEvent::Event event) {
+    ZY_ASSERT(event_ & event);
+    event_ = static_cast<ReactorEvent::Event>(event_ & ~event);
+    EventCallback &callback = getEventCallback(event);
+    if (callback.fiber_) {
+        callback.scheduler_->addTask(callback.fiber_);
     } else {
-        // 使用地址传入就会将fiber的引用计数-1
-        ctx.scheduler->schedule(&ctx.fiber);
+        callback.scheduler_->addTask(callback.func_);
     }
-    // 执行完毕将协程调度器置空
-    ctx.scheduler = nullptr;
-    return;
+    resetEventCallback(callback);
 }
 
+Reactor::Reactor(std::string name, uint32_t thread_num, bool use_caller)
+        : Scheduler(std::move(name), thread_num, use_caller)
+        , epoll_fd_(::epoll_create1(EPOLL_CLOEXEC))
+        , wakeup_fd_(::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC))
+        , pending_event_num_(0) {
 
+    ZY_ASSERT(epoll_fd_ != -1);
+    ZY_ASSERT(wakeup_fd_ != -1);
 
-IOManager::IOManager(size_t threads, bool use_caller, const std::string& name)
-    :Scheduler(threads, use_caller, name) {
-        m_epfd = epoll_create(5000);
-        ZY_ASSERT(m_epfd > 0);
+    // 统一事件源，将 wakeup_fd 也加入 epoll 进行管理
+    addEvent(wakeup_fd_, ReactorEvent::READ, [&]() {
+        eventfd_t et;
+        eventfd_read(wakeup_fd_, &et);
+    });
 
-        int rt = pipe(m_tickleFds);
-        ZY_ASSERT(!rt);
-
-        epoll_event event;
-        memset(&event, 0, sizeof(epoll_event));
-        event.events = EPOLLIN | EPOLLET;//ET边缘触发
-        event.data.fd = m_tickleFds[0];
-
-        rt = fcntl(m_tickleFds[0], F_SETFL, O_NONBLOCK);
-        ZY_ASSERT(!rt);
-
-        rt = epoll_ctl(m_epfd, EPOLL_CTL_ADD, m_tickleFds[0], &event);
-        ZY_ASSERT(!rt);
-
-        contextResize(32);
-
-        start();
-
+    channelResize(32);
+    // 启动调度器
+    start();
 }
 
-void IOManager::contextResize(size_t size) {
-    m_fdContexts.resize(size);
-
-    for (size_t i = 0; i < m_fdContexts.size(); ++i) {
-        // 没有才new新的
-        if (!m_fdContexts[i]) {
-            m_fdContexts[i] = new FdContext;
-            m_fdContexts[i]->fd = i;
+void Reactor::channelResize(size_t size) {
+    channels_.resize(size);
+    for (int i = 0; i < static_cast<int>(channels_.size()); ++i) {
+        if (!channels_[i]) {
+            channels_[i] = new Channel(i);
         }
     }
 }
 
-IOManager::~IOManager() {
+Reactor::~Reactor() {
+    // 关闭调度器，主线程调度协程开始执行，如果有的话
     stop();
-    close(m_epfd);
-    close(m_tickleFds[0]);
-    close(m_tickleFds[1]);
-
-    for (size_t i = 0; i < m_fdContexts.size(); ++i) {
-        if (m_fdContexts[i]) {
-            delete m_fdContexts[i];
-        }
+    ::close(epoll_fd_);
+    ::close(wakeup_fd_);
+    for (auto &channel: channels_) {
+        delete channel;
     }
 }
 
-int IOManager::addEvent(int fd, Event event, std::function<void()> cb) {
-    // 初始化一个 FdContext
-    FdContext* fd_ctx = nullptr;
-    RWMutexType::ReadLock lock(m_mutex);
- 	// 从 m_fdContexts 中拿到对应的 FdContext
-    if ((int)m_fdContexts.size() > fd) {
-        fd_ctx = m_fdContexts[fd];
+bool Reactor::addEvent(int fd, ReactorEvent::Event event, const std::function<void()> &cb) {
+    // 取出 fd 对应的 channel，如果没有则扩容
+    Channel *channel;
+    RWMutex::ReadLock lock(mutex_);
+    if (static_cast<int>(channels_.size()) > fd) {
+        channel = channels_[fd];
         lock.unlock();
     } else {
         lock.unlock();
-        RWMutexType::WriteLock lock2(m_mutex);
-        // 不够就扩充
-        contextResize(fd * 1.5);
-        fd_ctx = m_fdContexts[fd];     
+        RWMutex::WriteLock lock1(mutex_);
+        channelResize(fd * 2);
+        channel = channels_[fd];
     }
 
-    FdContext::MutexType::Lock lock2(fd_ctx->mutex);
-    // 一个句柄一般不会重复加同一个事件， 可能是两个不同的线程在操控同一个句柄添加事件
-    if (fd_ctx->events & event) {
-        ZY_LOG_ERROR(g_logger) << "addEvent assert fd = " << fd
-                                  << ", event = " << event
-                                  << ", fd_ctx.event = " << fd_ctx->events;
-        ZY_ASSERT(!(fd_ctx->events & event));
-    }
+    // 不可以重复注册事件
+    Mutex::Lock lock1(channel->mutex_);
+    ZY_ASSERT(!(channel->event_ & event));
 
-    // 若已经有注册的事件则为修改操作，若没有则为添加操作
-    int op = fd_ctx->events ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
-    epoll_event epevent;
-    // 设置边缘触发模式，添加原有的事件以及要注册的事件
-    epevent.events = EPOLLET | fd_ctx->events | event;
-    // 将fd_ctx存到data的指针中
-    epevent.data.ptr = fd_ctx;
-
-    int rt = epoll_ctl(m_epfd, op, fd, &epevent);
+    // 使用系统调用修改底层 epoll
+    epoll_event ev{};
+    memset(&ev, 0, sizeof ev);
+    ev.events = channel->event_ | event | EPOLLET;
+    ev.data.fd = fd;
+    ev.data.ptr = channel;
+    int op = channel->event_ ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
+    int rt = epoll_ctl(epoll_fd_, op, fd, &ev);
     if (rt) {
-        ZY_LOG_ERROR(g_logger) << "epoll_ctl(" << m_epfd << ","
-                                  << op << ", " << fd << ", " << epevent.events << ") :"
-                                  << rt << " (" << errno << ") (" << strerror(errno) << ")";
-        return -1;
+        ZY_LOG_ERROR(ZY_LOG_ROOT()) << "epoll_ctl(" << epoll_fd_ << ", "
+                                        << op << ", " << fd << ", " << ev.events << "):"
+                                        << rt << "(" << errno << ")(" << strerror(errno) << ")";
+        return false;
     }
 
-    // 等待执行的事件数量+1
-    ++m_pendingEventCount;
-    // 将 fd_ctx 的注册事件更新
-    fd_ctx->events = (Event)(fd_ctx->events | event);
-    // 获得对应事件的 EventContext
-    FdContext::EventContext &event_ctx = fd_ctx->getContext(event);
-    // EventContext的成员应该都为空
-    ZY_ASSERT(!event_ctx.scheduler
-                    && !event_ctx.fiber
-                    && !event_ctx.cb);
-    // 获得当前调度器
-    event_ctx.scheduler = Scheduler::GetThis();
-    
-    // 如果有回调就执行回调，没有就执行该协程
+    ++pending_event_num_;
+    // Reactor 模型对应的部分也要修改
+    channel->event_ = static_cast<ReactorEvent::Event>(channel->event_ | event);
+    Channel::EventCallback &event_callback = channel->getEventCallback(event);
+    ZY_ASSERT(!event_callback.scheduler_ && !event_callback.fiber_ && !event_callback.func_);
+
+    event_callback.scheduler_ = Scheduler::GetThis();
     if (cb) {
-        event_ctx.cb.swap(cb);
+        event_callback.func_ = cb;
     } else {
-        event_ctx.fiber = Fiber::GetThis();
-        ZY_ASSERT(event_ctx.fiber->getState() == Fiber::EXEC);
+        // 回调函数为空，说明是一个回调函数中途 yield，将自己添加到 epoll 中，等待再次执行，所以把当前协程当作回调
+        event_callback.fiber_ = Fiber::GetThis()->shared_from_this();
+        ZY_ASSERT(event_callback.fiber_->getState() == Fiber::RUNNING);
     }
-    return 0;
-}
-
-bool IOManager::delEvent(int fd, Event event) {
-    RWMutexType::ReadLock lock(m_mutex);
-    if ((int)m_fdContexts.size() <= fd) {
-        return false;
-    }
-    // 拿到 fd 对应的 FdContext
-    FdContext* fd_ctx = m_fdContexts[fd];
-    lock.unlock();
-	
-    FdContext::MutexType::Lock lock2(fd_ctx->mutex);
-    // 若没有要删除的事件
-    if (!(fd_ctx->events & event)) {
-        return false;
-    }
-	
-    // 将事件从注册事件中删除
-    Event new_events = (Event)(fd_ctx->events & ~event);
-    // 若还有事件则是修改，若没事件了则删除
-    int op = new_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
-    epoll_event epevent;
-    // 水平触发模式，新的注册事件
-    epevent.events = EPOLLET | new_events;
-    // ptr 关联 fd_ctx
-    epevent.data.ptr = fd_ctx;
-	
-    // 注册事件
-    int rt = epoll_ctl(m_epfd, op, fd, &epevent);
-    if (rt) {
-        ZY_LOG_ERROR(g_logger) << "epoll_ctl(" << m_epfd << ","
-                                  << op << ", " << fd << ", " << epevent.events << ") :"
-                                  << rt << " (" << errno << ") (" << strerror(errno) << ")";
-        return false;
-    }
-	
-    // 等待执行的事件数量-1
-    --m_pendingEventCount;
-    // 更新事件
-    fd_ctx->events = new_events;
-    // 拿到对应事件的EventContext
-    FdContext::EventContext& event_ctx = fd_ctx->getContext(event);
-    // 重置EventContext
-    fd_ctx->resetContext(event_ctx);
-    return true;
-
-}
-
-bool IOManager::cancelEvent(int fd, Event event) {
-    RWMutexType::ReadLock lock(m_mutex);
-    if ((int)m_fdContexts.size() <= fd) {
-        return false;
-    }
-    
-    FdContext* fd_ctx = m_fdContexts[fd];
-    lock.unlock();
-	
-    FdContext::MutexType::Lock lock2(fd_ctx->mutex);
-    if (!(fd_ctx->events & event)) {
-        return false;
-    }
-    
-    Event new_events = (Event)(fd_ctx->events & ~event);
-    int op = new_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
-    epoll_event epevent;
-    epevent.events = EPOLLET | new_events;
-    epevent.data.ptr = fd_ctx;
-
-    int rt = epoll_ctl(m_epfd, op, fd, &epevent);
-    if (rt) {
-        ZY_LOG_ERROR(g_logger) << "epoll_ctl(" << m_epfd << ","
-                                  << op << ", " << fd << ", " << epevent.events << ") :"
-                                  << rt << " (" << errno << ") (" << strerror(errno) << ")";
-        return false;
-    }
-	
-    // // 触发当前事件
-    fd_ctx->triggerEvent(event);
-    --m_pendingEventCount;
-
-    return true;
-
-}
-
-bool IOManager::cancelAll(int fd) {
-    RWMutexType::ReadLock lock(m_mutex);
-    if ((int)m_fdContexts.size() <= fd) {
-        return false;
-    }
-    FdContext* fd_ctx = m_fdContexts[fd];
-    lock.unlock();
-
-    FdContext::MutexType::Lock lock2(fd_ctx->mutex);
-    if (!fd_ctx->events) {
-        return false;
-    }
-	
-    // 删除操作
-    int op = EPOLL_CTL_DEL;
-    epoll_event epevent;
-    // 没有事件
-    epevent.events = 0;
-    epevent.data.ptr = fd_ctx;
-
-    int rt = epoll_ctl(m_epfd, op, fd, &epevent);
-    if (rt) {
-        ZY_LOG_ERROR(g_logger) << "epoll_ctl(" << m_epfd << ","
-                                  << op << ", " << fd << ", " << epevent.events << ") :"
-                                  << rt << " (" << errno << ") (" << strerror(errno) << ")";
-        return false;
-    }
-    
-    // 有读事件执行读事件
-    if (fd_ctx->events & READ) {
-        fd_ctx->triggerEvent(READ);
-        --m_pendingEventCount;
-    }
- 	// 有写事件执行写事件
-    if (fd_ctx->events & WRITE) {
-        fd_ctx->triggerEvent(WRITE);
-        --m_pendingEventCount;
-    }
-
-    ZY_ASSERT(fd_ctx->events == 0);
     return true;
 }
 
-IOManager* IOManager::GetThis() {
-    return dynamic_cast<IOManager *>(Scheduler::GetThis());
-}
-
-void IOManager::tickle() {
-    // 没有在执行 idel 的线程
-    if (!hasIdleThread()) {
-        return;
+bool Reactor::delEvent(int fd, ReactorEvent::Event event, bool trigger) {
+    // 取出 fd 对应的 channel，如果没有则出错
+    RWMutex::ReadLock lock(mutex_);
+    if (static_cast<int>(channels_.size()) <= fd) {
+        return false;
     }
-    
-    // 有任务来了，就往 pipe 里发送1个字节的数据，这样 epoll_wait 就会唤醒
-    int rt = write(m_tickleFds[1], "T", 1);
-    ZY_ASSERT(rt == 1);
+    Channel *channel = channels_[fd];
+    lock.unlock();
 
+    // 不可以删除没有注册的事件
+    Mutex::Lock lock1(channel->mutex_);
+    if (!(channel->event_ & event)) {
+        return false;
+    }
+
+    // 使用系统调用修改底层 epoll
+    epoll_event ev{};
+    memset(&ev, 0, sizeof ev);
+    ev.events = (channel->event_ & ~event) | EPOLLET;
+    ev.data.fd = fd;
+    ev.data.ptr = channel;
+    int op = (channel->event_ & ~event) ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
+    int rt = epoll_ctl(epoll_fd_, op, fd, &ev);
+    if (rt) {
+        ZY_LOG_ERROR(ZY_LOG_ROOT()) << "epoll_ctl(" << epoll_fd_ << ", "
+                                        << op << ", " << fd << ", " << ev.events << "):"
+                                        << rt << "(" << errno << ")(" << strerror(errno) << ")";
+        return false;
+    }
+
+    --pending_event_num_;
+    if (trigger) {
+        channel->triggerEvent(event);
+    }
+    channel->event_ = static_cast<ReactorEvent::Event>(channel->event_ & ~event);
+    Channel::EventCallback &event_callback = channel->getEventCallback(event);
+    Channel::resetEventCallback(event_callback);
+    return true;
 }
 
-bool IOManager::stopping(uint64_t& timeout) {
-    // 获得下次任务执行的时间
-    timeout = getNextTimer();
-    // 定时器为空 && 等待执行的事件数量为0 && scheduler可以stop
-    return timeout == ~0ull
-        && m_pendingEventCount == 0
-        && Scheduler::stopping();
+Reactor *Reactor::GetThis() {
+    return dynamic_cast<Reactor *>(Scheduler::GetThis());
 }
 
-bool IOManager::stopping() {
-    uint64_t timeout = 0;
-    return stopping(timeout);
+bool Reactor::stopping() {
+    uint64_t timeout = getNextTime();
+    // 定时器和调度器都没有任务时才可以停止
+    return timeout == ~0ull && pending_event_num_ == 0 && Scheduler::stopping();
 }
 
+void Reactor::idle() {
+    static const uint32_t MAX_EVENTS = 256;
+    static const uint64_t MAX_TIMEOUT = 3000;
+    std::vector<epoll_event> events(MAX_EVENTS);
 
-
-void IOManager::idle() {
-    epoll_event* events = new epoll_event[64]();
-    // 使用智能指针托管events， 离开idle自动释放
-    std::shared_ptr<epoll_event> shared_events(events, [](epoll_event *ptr)
-                                              { delete[] ptr; });
-	
-    while (true) {
-        // 下一个任务要执行的时间
-        uint64_t next_timeout = 0;
-        // 获得下一个执行任务的时间，并且判断是否达到停止条件
-        if (stopping(next_timeout)) {
-            ZY_LOG_INFO(g_logger) << "name = " << getName()
-                                     << ", idle stopping exit";
-            break;
+    while (!stopping()) {
+        // 根据定时器确定超时时间
+        uint64_t next_timeout = getNextTime();
+        if (next_timeout != ~0ull) {
+            next_timeout = std::min(next_timeout, MAX_TIMEOUT);
+        } else {
+            next_timeout = MAX_TIMEOUT;
         }
-        
-        int rt = 0;
-        do {
-            // 毫秒级精度
-            static const int MAX_TIMEOUT = 3000;
-            //如果有定时器任务
-            if (next_timeout != ~0ull) {
-                // 睡眠时间为next_timeout，但不超过MAX_TIMEOUT
-                next_timeout = (int)next_timeout > MAX_TIMEOUT
-                                ? MAX_TIMEOUT : (int)next_timeout;
-            } else {
-                // 没定时器任务就睡眠MAX_TIMEOUT
-                next_timeout = MAX_TIMEOUT;
-            }
-            /*  
-             * 阻塞在这里，但有3中情况能够唤醒epoll_wait
-             * 1. 超时时间到了
-             * 2. 关注的 socket 有数据来了
-             * 3. 通过 tickle 往 pipe 里发数据，表明有任务来了
-             */
-            rt = epoll_wait(m_epfd, events, 64, (int)next_timeout);
-            /* 这里就是源码 ep_poll() 中由操作系统中断返回的 EINTR
-             * 需要重新尝试 epoll_Wait */
-            if(rt < 0 && errno == EINTR) {
-            } else {
-                break;
-            }
-        } while (true);
-        
-        std::vector<std::function<void()> > cbs;
-        // 获取已经超时的任务
-        listExpiredCb(cbs);
-		
-        // 全部放到任务队列中
-        if (!cbs.empty()) {
-            Scheduler::schedule(cbs.begin(), cbs.end());
-            cbs.clear();
+
+        // 阻塞等待
+        int event_num = epoll_wait(epoll_fd_, &*events.begin(), MAX_EVENTS,
+                                    static_cast<int>(next_timeout));
+
+        // TODO 处理信号
+        // 退出 epoll_wait 说明有定时器超时或者有事件发生
+
+        // 处理超时的定时器
+        std::vector<std::function<void()>> callbacks;
+        listExpiredCallback(callbacks);
+        for (const auto &callback: callbacks) {
+            addTask(callback);
         }
-		
-        // 遍历已经准备好的fd
-        for (int i = 0; i < rt; ++i) {
-            // 从 events 中拿一个 event
+
+        // 处理到来的事件
+        for (int i = 0; i < event_num; ++i) {
             epoll_event &event = events[i];
-            // 如果获得的这个信息时来自 pipe
-            if (event.data.fd == m_tickleFds[0]) {
-                uint8_t dummy;
-                // 将 pipe 发来的1个字节数据读掉
-                while (read(m_tickleFds[0], &dummy, 1) == 1);
-                continue;
-            }
-			
-            // 从 ptr 中拿出 FdContext
-            FdContext *fd_ctx = (FdContext*)event.data.ptr;
-            FdContext::MutexType::Lock lock(fd_ctx->mutex);
-			/* 在源码中，注册事件时内核会自动关注POLLERR和POLLHUP */
-            if (event.events & (EPOLLERR | EPOLLHUP)) {
-                // 将读写事件都加上
-                event.events |= (EPOLLIN | EPOLLOUT) & fd_ctx->events;
-            }
-          
-            int real_events = NONE;
-            // 读事件好了
+            auto *channel = static_cast<Channel *>(event.data.ptr);
+            Mutex::Lock lock(channel->mutex_);
+
+            // TODO 多种事件的处理
+            // 现阶段只处理读写事件
+            uint32_t real_events = ReactorEvent::NONE;
             if (event.events & EPOLLIN) {
-                real_events |= READ;
+                real_events |= ReactorEvent::READ;
             }
-            // 写事件好了
             if (event.events & EPOLLOUT) {
-                real_events |= WRITE;
+                real_events |= ReactorEvent::WRITE;
             }
 
-            // 没事件
-            if ((fd_ctx->events & real_events) == NONE) {
-                continue;
-            }
-
-            // 剩余的事件
-            int left_events = (fd_ctx->events & ~real_events);
-            // 如果执行完该事件还有事件则修改，若无事件则删除
+            uint32_t left_events = (channel->event_ & ~real_events);
             int op = left_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
-            // 更新新的事件
-            event.events = EPOLLET | left_events;
-	
-            // 重新注册事件
-            int rt2 = epoll_ctl(m_epfd, op, fd_ctx->fd, &event);
-            if (rt2) {
-                ZY_LOG_ERROR(g_logger) << "epoll_ctl(" << m_epfd << ","
-                                          << op << ", " << fd_ctx->fd << ", " << event.events << ") :"
-                                          << rt2 << " (" << errno << ") (" << strerror(errno) << ")";
+            event.events = left_events | EPOLLET;
+            int rt = epoll_ctl(epoll_fd_, op, channel->fd_, &event);
+            if (rt) {
+                ZY_LOG_ERROR(ZY_LOG_ROOT()) << "epoll_ctl(" << epoll_fd_ << ", "
+                                                << op << ", " << channel->fd_ << ", " << event.events << "):"
+                                                << rt << "(" << errno << ")(" << strerror(errno) << ")";
                 continue;
             }
-			
-            // 读事件好了，执行读事件
-            if (real_events & READ) {
-                fd_ctx->triggerEvent(READ);
-                --m_pendingEventCount;
+
+            if (real_events & EPOLLIN) {
+                channel->triggerEvent(ReactorEvent::READ);
+                --pending_event_num_;
             }
-            // 写事件好了，执行写事件
-            if (real_events & WRITE) {
-                fd_ctx->triggerEvent(WRITE);
-                --m_pendingEventCount;
+            if (real_events & EPOLLOUT) {
+                channel->triggerEvent(ReactorEvent::WRITE);
+                --pending_event_num_;
             }
-        }
-		
-        // 执行完epoll_wait返回的事件
-        // 获得当前协程
-        Fiber::ptr cur = Fiber::GetThis();
-        // 获得裸指针
+        }  // end for
+
+        auto cur = Fiber::GetThis();
         auto raw_ptr = cur.get();
-        // 将当前idle协程指向空指针，状态为INIT
-        cur.reset();
-
-        // 执行完返回scheduler的MainFiber 继续下一轮
-        raw_ptr->swapOut();
-    }
-
+        cur.reset();                                    // 手动使引用计数减一
+        raw_ptr->yield();
+    } // end while
 }
 
-void IOManager::onTimerInsertedAtFront() {
+void Reactor::tickle() {
+    eventfd_write(wakeup_fd_, 1);
+}
+
+void Reactor::onTimerInsertAtFront() {
     tickle();
 }
 

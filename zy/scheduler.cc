@@ -13,9 +13,7 @@ Scheduler::Scheduler(std::string name, uint32_t thread_num, bool use_caller)
     : name_(std::move(name)), stopping_(false), thread_num_(thread_num)
     , active_thread_num_(0), idle_thread_num_(0)
     , use_caller_(use_caller), caller_tid_(-1) {
-    ZY_ASSERT(thread_num > 0);
     setThreadName(name_);
-
     // 初始化主线程的主协程，即调度器所在的协程
     Fiber::InitMainFiber();    
     if (use_caller) {
@@ -46,10 +44,7 @@ Scheduler::~Scheduler() {
 //核心 线程池
 void Scheduler::start() {
     Mutex::Lock lock(mutex_);
-    if (!stopping_) {
-        return;
-    }
-    stopping_ = false;
+
     ZY_ASSERT(threads_.empty());
 
     threads_.resize(thread_num_);
@@ -113,6 +108,7 @@ void Scheduler::run() {
 
     // 非user_caller线程，设置主协程为线程主协程
     if (getThreadId() != caller_tid_) {
+        Fiber::InitMainFiber();
         t_scheduler_fiber = Fiber::GetThis().get();
     }
     // 新建dile_fiber，当任务队列中的任务执行完之后，执行idle()
@@ -128,7 +124,7 @@ void Scheduler::run() {
             auto it = tasks_.begin();
             while (it != tasks_.end()) {
                 //it的协程并非指名的协程，则跳过，并且tickle一下
-                if (it->tid_ != INVALID_TID && it->tid_ != zy::getThreadId()) {
+                if (it->tid_ != static_cast<uint32_t>(-1) && it->tid_ != zy::getThreadId()) {
                     ++it;
                     tickle_me = true;
                     continue;
@@ -146,7 +142,7 @@ void Scheduler::run() {
                 ZY_ASSERT(it->fiber_ || it->cb_);
                 //非上述两种情况才处理
                 task = *it;
-                tasks_.erase(it);
+                tasks_.erase(it++);
                 ++active_thread_num_;
                 break;
             }

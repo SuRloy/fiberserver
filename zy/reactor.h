@@ -8,81 +8,151 @@
 
 namespace zy {
 
-class IOManager : public Scheduler, public TimerManager {
-public:
-    typedef std::shared_ptr<IOManager> ptr;
-    typedef RWMutex RWMutexType;
-    
+/**
+ * @brief IO 事件，与 epoll 对事件的定义相同，暂时只关心读写事件
+ */
+struct ReactorEvent {
     enum Event {
-        NONE    = 0x0,
-        READ    = 0x1, //EPOLLIN
-        WRITE   = 0x4, //EPOLLOUT
+        NONE = 0x00,
+        READ = 0x01,
+        WRITE = 0x04,
+    };
+};
+
+/**
+ * @brief socket fd 上下文，fd - 事件 -回调三元组
+ */
+struct Channel : NonCopyable {
+    /**
+     * @brief 事件上下文，包含执行回调函数的调度器和需要执行的回调
+     */
+    struct EventCallback {
+        Scheduler *scheduler_ = nullptr;
+        Fiber::ptr fiber_;
+        std::function<void()> func_;
     };
 
-private:
-    struct FdContext {
-        typedef Mutex MutexType;
-        struct EventContext {
-            Scheduler* scheduler = nullptr; //在哪个scheduler上执行事件
-            Fiber::ptr fiber;               //事件协程
-            std::function<void()> cb;
-        };
-
-        EventContext& getContext(Event event);
-        void resetContext(EventContext& ctx);
-        void triggerEvent(Event event);
-
-        int fd = 0;             //时间关联的句柄
-        EventContext read;      //读事件
-        EventContext write;     //写事件
-
-        Event events = NONE;  //已经注册的事件
-        MutexType mutex;
-    };
-public:
-    IOManager(size_t threads = 1, bool use_caller = true, const std::string& name = "");
-    ~IOManager();
-
-    //0 success, -1 error
-    int addEvent(int fd, Event event, std::function<void()> cb = nullptr);
-    bool delEvent(int fd, Event event);
-    //取消事件会触发该事件
-    bool cancelEvent(int fd, Event event);
-
-    bool cancelAll(int fd);
-    static IOManager* GetThis();
-
-protected:
-    void tickle() override;
-    bool stopping() override;
-    void idle() override;
-    void onTimerInsertedAtFront() override;
     /**
-     * @brief 重置socket句柄上下文的容器大小
-     * @param[in] size 容量大小
+     * @brief 构造函数
+     * @param fd socket fd
+     * @param event 感兴趣的事件
      */
-    void contextResize(size_t size);
-    /**
-     * @brief 判断是否可以停止
-     * @param[out] timeout 最近要出发的定时器事件间隔
-     * @return 返回是否可以停止
-     */
-    bool stopping(uint64_t& timeout);
-private:
-    int m_epfd = 0;
-    int m_tickleFds[2];
+    explicit Channel(int fd, ReactorEvent::Event event = ReactorEvent::NONE);
 
-    // 当前等待执行的事件数量
-    std::atomic<size_t> m_pendingEventCount = {0};
-    RWMutexType m_mutex;
-    // socket事件上下文的容器
-    std::vector<FdContext*> m_fdContexts;
+    /**
+     * @brief 获取对应事件的回调
+     * @param event 事件
+     * @return 返回回调的引用，可以进行修改
+     */
+    EventCallback &getEventCallback(ReactorEvent::Event event);
+
+    /**
+     * @brief 重置回调
+     * @param event_callback 需要被重置的回调
+     */
+    static void resetEventCallback(EventCallback &event_callback);
+
+    /**
+     * @brief 触发对应事件的回调
+     * @param event 事件
+     * @details 触发回调只是将对应的回调函数添加到调度器中，而不是立即执行
+     */
+    void triggerEvent(ReactorEvent::Event event);
+
+    /// socket 描述符
+    int fd_;
+    /// 感兴趣的事件，多个事件用 | 连接
+    ReactorEvent::Event event_;
+    /// 读事件回调
+    EventCallback read_;
+    /// 写事件回调
+    EventCallback write_;
+    Mutex mutex_;
 };
 
 
+class Reactor : public Scheduler, public TimerManager {
+public:
+    using ptr = std::shared_ptr<Reactor>;
+
+    public:
+        /**
+         * @brief 构造函数
+         * @param name 调度器名称
+         * @param thread_num 子线程数量
+         * @param use_caller 调度器所在线程是否作为调度线程
+         */
+        explicit Reactor(std::string name, uint32_t thread_num = 0, bool use_caller = true);
+
+        /**
+         * @brief 析构函数
+         */
+        ~Reactor() override;
+
+        /**
+         * @brief 将 fd 的 event 事件添加到 epoll 中
+         * @param fd socket 描述符
+         * @param event 感兴趣的事件
+         * @param cb 事件对应的回调
+         * @return 操作是否成功
+         */
+        bool addEvent(int fd, ReactorEvent::Event event, const std::function<void()>& cb = nullptr);
+
+        /**
+         * @brief 将 fd 的 event 事件从 epoll 中删除
+         * @param fd socket 描述符
+         * @param event 不感兴趣的事件
+         * @param trigger 删除之前是否触发一次
+         * @return 操作是否成功
+         */
+        bool delEvent(int fd, ReactorEvent::Event event, bool trigger = false);
+
+        /**
+         * @brief 获取当前线程的反应堆模型
+         * @return 当前线程的反应堆模型
+         */
+        static Reactor *GetThis();
+
+    private:
+        /**
+         * @brief 反应堆是否可以停止
+         * @return 是否可以停止
+         */
+        bool stopping() override;
+
+        /**
+         * @brief 空闲协程，在线程没有调度任务时转到该协程执行
+         */
+        void idle() override;
+
+        /**
+         * @brief 通知协程调度器有调度任务需要执行了
+         */
+        void tickle() override;
+
+        /**
+         * @brief 当插入一个定时器到堆顶时需要执行的操作
+         */
+        void onTimerInsertAtFront() override;
+
+        /**
+         * @brief 调整 std::vector<Channel *> 的大小
+         * @param size 目标大小
+         */
+        void channelResize(size_t size);
+
+    private:
+        /// epoll 描述符
+        int epoll_fd_;
+        /// event fd，用于唤醒 epoll_wait
+        int wakeup_fd_;
+        /// 当前等待执行的 IO 事件的数量
+        std::atomic_uint32_t pending_event_num_;
+        /// epoll 所管理的所有 socket fd
+        std::vector<Channel *> channels_;
+        RWMutex mutex_;
+    };
+
 }
-
-
-
 
 #endif

@@ -34,7 +34,6 @@ public:
      */
     virtual ~Scheduler();
 
-    const std::string& getName() const { return name_;}
 
     /**
      * @brief 启动调度器
@@ -54,7 +53,7 @@ public:
      * @param tid 指定在某一个线程执行
      */
     template<class Task>
-    void addTask(Task t, uint32_t tid = INVALID_TID) {
+    void addTask(Task t, uint32_t tid = -1) {
         bool need_tickle = false;
         {
             Mutex::Lock lock(mutex_);
@@ -119,20 +118,20 @@ private:
         // 线程id 协程在哪个线程上 
         uint32_t tid_;
 
-        SchedulerTask() : fiber_(nullptr), cb_(nullptr), tid_(INVALID_TID) {}
+        SchedulerTask() : fiber_(nullptr), cb_(nullptr), tid_(-1) {}
 
-        explicit SchedulerTask(Fiber::ptr fiber, uint32_t tid = INVALID_TID)
+        explicit SchedulerTask(Fiber::ptr fiber, uint32_t tid = -1)
             : fiber_(std::move(fiber)), cb_(nullptr), tid_(tid) {
         }
 
-        explicit SchedulerTask(std::function<void()> func, uint32_t tid = INVALID_TID)
+        explicit SchedulerTask(std::function<void()> func, uint32_t tid = -1)
             : fiber_(nullptr), cb_(std::move(func)), tid_(tid) {
         }
 
         void reset() {
             fiber_ = nullptr;
             cb_ = nullptr;
-            tid_ = INVALID_TID;
+            tid_ = -1;
         }
     };
 private:

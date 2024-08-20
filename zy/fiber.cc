@@ -53,7 +53,7 @@ Fiber::Fiber()
         ZY_ASSERT2(false, "getcontext");
     }
 
-    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "Fiber::Fiber main";
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "Fiber::Fiber main in thread " << zy::getThreadId();
 }
 
 //子协程的构造
@@ -174,7 +174,7 @@ Fiber::ptr Fiber::GetThis() {
 
 uint32_t Fiber::GetFiberId() {
     if (!t_thread_fiber) {
-        return INVALID_TID;
+        return -1;
     }
     return t_thread_fiber->getId();
 }

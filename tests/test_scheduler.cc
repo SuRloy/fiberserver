@@ -6,6 +6,7 @@
 #include "utils/util.h"
 #include <iostream>
 #include "log.h"
+#include <unistd.h>
 
 using namespace zy;
 
@@ -23,7 +24,7 @@ void test_scheduler1() {
 void test_scheduler2() {
     ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " test_scheduler2 begin";
 
-    // sleep(3);
+    sleep(3);
 
     ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " test_scheduler2 end";
 }
@@ -36,7 +37,7 @@ void test_scheduler3() {
 
 void test_scheduler4() {
     static int count = 0;
-    ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " test_scheduler1 begin, i = " << count;
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " test_scheduler4 begin, i = " << count;
     ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " test_scheduler4 end, i = " << count;
     ++count;
 }
@@ -51,18 +52,19 @@ void test_scheduler5() {
 
 int main() {
     ZY_LOG_INFO(ZY_LOG_ROOT()) << getThreadId() << ", " << Fiber::GetFiberId() << " main begin";
-    // Scheduler scheduler("scheduler");
-    // Scheduler scheduler("scheduler", 1, false);
+    //Scheduler scheduler("scheduler");
+    //Scheduler scheduler("scheduler", 1, false);
     Scheduler scheduler("scheduler", 1, true);
 
-    //scheduler.addTask(test_scheduler1);
+    // scheduler.addTask(test_scheduler1);
     // scheduler.addTask(test_scheduler2);
 
-    //scheduler.addTask(std::make_shared<Fiber>(test_scheduler3));//用户自己创建fiber
+    scheduler.addTask(std::make_shared<Fiber>(test_scheduler3));//用户自己创建fiber
 
     scheduler.start();//创建指定数量线程并绑定scheduler::run函数
 
     scheduler.addTask(test_scheduler5);//test_scheduler5创建了三个任务，加入任务队列后创建任务协程调度完成任务并结束
+
 
     scheduler.stop();//stop触发
 
