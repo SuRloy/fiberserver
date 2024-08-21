@@ -81,7 +81,7 @@ Fiber::Fiber(fiber_func func, bool run_in_scheduler)
 
     makecontext(&ctx_, &Fiber::Mainfunc, 0);
 
-    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "Fiber::Fiber id = " << id_;
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "Fiber::Fiber id = " << id_ << " in thread " << getThreadId();
 }
 
 Fiber::~Fiber() {
@@ -102,7 +102,7 @@ Fiber::~Fiber() {
             SetThis(nullptr);
         }
     }
-    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "Fiber::~Fiber id = " << id_;
+    ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "Fiber::~Fiber id = " << id_ << " in thread " << getThreadId();;
 }
 
 void Fiber::reset(std::function<void()> cb) {
