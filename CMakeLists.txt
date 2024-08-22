@@ -29,6 +29,7 @@ set(LIB_SRC
     zy/hook.cc
     zy/socket.cc
     zy/byte_array.cc
+    zy/tcp_server.cc
     )
 
 set(LIBS
@@ -61,8 +62,11 @@ set(LIBS
 # add_executable(test_hook "tests/test_hook.cc" ${LIB_SRC})
 # target_link_libraries(test_hook ${LIBS})
 
-add_executable(test_bytearray "tests/test_bytearray.cc" ${LIB_SRC})
-target_link_libraries(test_bytearray ${LIBS})
+# add_executable(test_bytearray "tests/test_bytearray.cc" ${LIB_SRC})
+# target_link_libraries(test_bytearray ${LIBS})
+
+add_executable(test_tcpserver "tests/test_tcpserver.cc" ${LIB_SRC})
+target_link_libraries(test_tcpserver ${LIBS})
 
 add_library(zy SHARED ${LIB_SRC})
 

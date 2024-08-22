@@ -59,10 +59,11 @@ void test_sock() {
 }
 
 int main() {
-//     test_sleep();
+     test_sleep();
 
-    Reactor r("socket");
-    r.addTask(test_sock);
+    //Reactor r("socket");
+    //r.addTask(test_sock);
 
+//    test_sock();
     return 0;
 }
