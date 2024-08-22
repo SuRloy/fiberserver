@@ -1,6 +1,7 @@
 #include "scheduler.h"
 #include "log.h"
 #include "utils/macro.h"
+#include "hook.h"
 
 namespace zy {
 
@@ -103,7 +104,7 @@ bool Scheduler::stopping() {
 
 void Scheduler::run() {
     ZY_LOG_INFO(ZY_LOG_ROOT()) << "run begin";
-    //setHooked(true);
+    setHooked(true);
     SetThis(this);
 
     // 非user_caller线程，设置主协程为线程主协程

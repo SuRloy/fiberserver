@@ -24,11 +24,16 @@ set(LIB_SRC
     zy/scheduler.cc
     zy/timer.cc
     zy/reactor.cc
+    zy/address.cc
+    zy/file_descriptor.cc
+    zy/hook.cc
+    zy/socket.cc
     )
 
 set(LIBS
     zy
     pthread
+    dl
     )
 
 # add_executable(test_thread "tests/test_thread.cc" ${LIB_SRC})
@@ -43,8 +48,17 @@ set(LIBS
 # add_executable(test_timer "tests/test_timer.cc" ${LIB_SRC})
 # target_link_libraries(test_timer ${LIBS})
 
-add_executable(test_reactor "tests/test_reactor.cc" ${LIB_SRC})
-target_link_libraries(test_reactor ${LIBS})
+# add_executable(test_reactor "tests/test_reactor.cc" ${LIB_SRC})
+# target_link_libraries(test_reactor ${LIBS})
+
+# add_executable(test_address "tests/test_address.cc" ${LIB_SRC})
+# target_link_libraries(test_address ${LIBS})
+
+# add_executable(test_socket "tests/test_socket.cc" ${LIB_SRC})
+# target_link_libraries(test_socket ${LIBS})
+
+add_executable(test_hook "tests/test_hook.cc" ${LIB_SRC})
+target_link_libraries(test_hook ${LIBS})
 
 add_library(zy SHARED ${LIB_SRC})
 

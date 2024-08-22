@@ -1,7 +1,6 @@
 #ifndef __ZY_NONCOPYABLE_H__
 #define __ZY_NONCOPYABLE_H__
 
-#include <limits>
 namespace zy {
 
     class NonCopyable {
