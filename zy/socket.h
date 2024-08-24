@@ -45,7 +45,7 @@ public:
      * @brief 获取发送超时时间
      * @return 发送超时时间，未设置值为 -1
      */
-    uint64_t  getSendTimeout() const;
+    uint64_t getSendTimeout() const;
 
     /**
      * @brief 设置发送超时时间
@@ -57,7 +57,7 @@ public:
      * @brief 获取接收超时时间
      * @return 发送接收超时时间，未设置值为 -1
      */
-    uint64_t  getRecvTimeout() const;
+    uint64_t getRecvTimeout() const;
 
     /**
      * @brief 设置接收超时时间

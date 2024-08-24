@@ -9,6 +9,8 @@ set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-de
 
 include_directories(.)
 include_directories(./zy)
+include_directories(./chatroom)
+include_directories(./thirdparty)
 include_directories(/usr/local/include)
 link_directories(/usr/local/lib)
 
@@ -30,6 +32,8 @@ set(LIB_SRC
     zy/socket.cc
     zy/byte_array.cc
     zy/tcp_server.cc
+    chatroom/chatservice.cpp
+    chatroom/chatserver.cpp
     )
 
 set(LIBS
@@ -65,8 +69,11 @@ set(LIBS
 # add_executable(test_bytearray "tests/test_bytearray.cc" ${LIB_SRC})
 # target_link_libraries(test_bytearray ${LIBS})
 
-add_executable(test_tcpserver "tests/test_tcpserver.cc" ${LIB_SRC})
-target_link_libraries(test_tcpserver ${LIBS})
+# add_executable(test_tcpserver "tests/test_tcpserver.cc" ${LIB_SRC})
+# target_link_libraries(test_tcpserver ${LIBS})
+
+add_executable(test_chatserver "tests/test_chatserver.cc" ${LIB_SRC})
+target_link_libraries(test_chatserver ${LIBS})
 
 add_library(zy SHARED ${LIB_SRC})
 

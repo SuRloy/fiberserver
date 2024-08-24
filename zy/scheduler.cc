@@ -103,7 +103,7 @@ bool Scheduler::stopping() {
 }
 
 void Scheduler::run() {
-    ZY_LOG_INFO(ZY_LOG_ROOT()) << "run begin";
+    //ZY_LOG_INFO(ZY_LOG_ROOT()) << "run begin";
     setHooked(true);
     SetThis(this);
 

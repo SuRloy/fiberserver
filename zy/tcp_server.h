@@ -52,8 +52,11 @@ namespace zy {
         const std::string &getName() const { return name_; }
 
         bool isStop() const { return stop_; }
+
+        Reactor* getWorker() { return worker_;}
         // endregion
 
+        
     protected:
         /**
          * @brief 处理新的客户端连接
