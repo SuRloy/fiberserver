@@ -86,6 +86,7 @@ Socket::ptr Socket::accept() {
     sock->connected_ = true;
     sock->setLocalAddress();
     sock->setPeerAddress();
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << "client " << sock->getPeerAddress()->toString() << " is connected";
     return sock;
 }
 
@@ -109,6 +110,7 @@ bool Socket::close() {
         return false;
     }
     connected_ = false;
+    ZY_LOG_INFO(ZY_LOG_ROOT()) << "client " << getPeerAddress()->toString() << " is removed";
     ::close(fd_);
     fd_ = -1;
     return true;

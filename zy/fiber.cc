@@ -187,25 +187,26 @@ void Fiber::Mainfunc() {
     // 获得当前协程
     auto cur = GetThis();
     ZY_ASSERT(cur);
-    try {
+    //暂时不处理异常情况
+    // try {
         // 执行任务
         cur->cb_();
         cur->cb_ = nullptr;
         // 将状态设置为结束
         cur->state_ = TERM;
-    } catch (std::exception& ex) {
-        cur->state_ = EXCEPT;
-        ZY_LOG_ERROR(ZY_LOG_ROOT()) << "Fiber Except: " << ex.what()
-            << " fiber_id=" << cur->getId()
-            << std::endl
-            << zy::backtraceToString();
-    } catch (...) {
-        cur->state_ = EXCEPT;
-        ZY_LOG_ERROR(ZY_LOG_ROOT()) << "Fiber Except: "
-            << " fiber_id=" << cur->getId()
-            << std::endl
-            << zy::backtraceToString();
-    }
+    // } catch (std::exception& ex) {
+    //     cur->state_ = EXCEPT;
+    //     ZY_LOG_ERROR(ZY_LOG_ROOT()) << "Fiber Except: " << ex.what()
+    //         << " fiber_id=" << cur->getId()
+    //         << std::endl
+    //         << zy::backtraceToString();
+    // } catch (...) {
+    //     cur->state_ = EXCEPT;
+    //     ZY_LOG_ERROR(ZY_LOG_ROOT()) << "Fiber Except: "
+    //         << " fiber_id=" << cur->getId()
+    //         << std::endl
+    //         << zy::backtraceToString();
+    // }
     // 获得裸指针
     auto raw_ptr = cur.get();
     // 引用-1，防止fiber释放不掉

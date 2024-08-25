@@ -24,7 +24,7 @@ public:
         READY,
         RUNNING,
         TERM,
-        EXCEPT,
+        //EXCEPT,
     };
 private:
     /**

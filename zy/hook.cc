@@ -7,6 +7,9 @@
 #include "reactor.h"
 #include "file_descriptor.h"
 
+//debug
+// #include "log.h"
+// using namespace zy;
 // 带参数的宏定义
 #define HOOK_FUN(XX) \
     XX(sleep)        \
@@ -275,7 +278,6 @@ extern "C" {
         if (!zy::isHooked()) {
             return close_f(fd);
         }
-
         auto ctx = zy::FdMgr::GetInstance().get(fd);
         if (ctx) {
             auto r = zy::Reactor::GetThis();
