@@ -3,6 +3,11 @@
 ## 介绍
 本库是参考[[C++高级教程]从零开始开发服务器框架(sylar)](https://github.com/sylar-yin/sylar)，我引入了C++11标准的内容，对原库代码进行重新编写，对各个功能进行阶段性测试。
 
+## 使用说明
+
+* cd build && cmake ..
+* make 
+* ./main
 
 ## 文件介绍
 
