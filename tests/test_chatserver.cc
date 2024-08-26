@@ -2,7 +2,7 @@
 #include "zy/log.h"
 
 void run() {
-    TCPServer::ptr server(new ChatServer("server"));
+    TCPServer::ptr server(new ChatServer("chatserver"));
     Address::ptr addr = IPv4Address::Create("127.0.0.1", 12345);
     if (!addr) {
         ZY_LOG_DEBUG(ZY_LOG_ROOT()) << "create addr failed!";
