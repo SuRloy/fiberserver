@@ -8,6 +8,7 @@
 
 namespace zy {
 
+//封装二进制文件读写
 class Connection {
 public:
     using ptr = std::shared_ptr<Connection>;

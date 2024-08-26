@@ -54,6 +54,10 @@ namespace zy {
         bool isStop() const { return stop_; }
 
         Reactor* getWorker() { return worker_;}
+
+        bool stopState() { return stop_;}
+
+        Socket::ptr getListenSock() { return sock_;}
         // endregion
 
         

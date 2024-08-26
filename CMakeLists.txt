@@ -15,31 +15,35 @@ include_directories(/usr/local/include)
 link_directories(/usr/local/lib)
 
 # 定义参与编译的源文件
-# aux_source_directory(./zy BASE_LIST)
-# aux_source_directory(./zy/utils UTIL_LIST)
-# set(LIB_SRC ${BASE_LIST} ${UTIL_LIST})
-set(LIB_SRC
-    zy/log.cc
-    zy/utils/util.cc
-    zy/thread.cc
-    zy/fiber.cc
-    zy/scheduler.cc
-    zy/timer.cc
-    zy/reactor.cc
-    zy/address.cc
-    zy/file_descriptor.cc
-    zy/hook.cc
-    zy/socket.cc
-    zy/byte_array.cc
-    zy/tcp_server.cc
-    chatroom/chatservice.cpp
-    chatroom/chatserver.cpp
-    )
+aux_source_directory(./zy BASE_LIST)
+aux_source_directory(./zy/utils UTIL_LIST)
+aux_source_directory(./chatroom CHATROOM_LIST)
+set(LIB_SRC ${BASE_LIST} ${UTIL_LIST} ${CHATROOM_LIST})
+
+# set(LIB_SRC
+#     zy/log.cc
+#     zy/utils/util.cc
+#     zy/thread.cc
+#     zy/fiber.cc
+#     zy/scheduler.cc
+#     zy/timer.cc
+#     zy/reactor.cc
+#     zy/address.cc
+#     zy/file_descriptor.cc
+#     zy/hook.cc
+#     zy/socket.cc
+#     zy/byte_array.cc
+#     zy/tcp_server.cc
+#     chatroom/chatservice.cpp
+#     chatroom/chatserver.cpp
+#     chatroom/db.cpp
+#     )
 
 set(LIBS
     zy
     pthread
     dl
+    mysqlclient
     )
 
 # add_executable(test_thread "tests/test_thread.cc" ${LIB_SRC})

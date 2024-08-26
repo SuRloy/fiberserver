@@ -7,7 +7,7 @@
 namespace zy {
     TCPServer::TCPServer(std::string name, Reactor *acceptor, Reactor *worker)
         : name_(std::move(name)), acceptor_(acceptor), worker_(worker), stop_(false) {
-        ZY_LOG_INFO(ZY_LOG_ROOT()) << "create a new tcp server, name = " << getName();
+        //ZY_LOG_INFO(ZY_LOG_ROOT()) << "create a new tcp server, name = " << getName();
     }
 
     TCPServer::~TCPServer() {

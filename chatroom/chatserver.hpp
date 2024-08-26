@@ -8,13 +8,15 @@ using namespace zy;
 class ChatServer : public TCPServer
 {
 public:
+    using ptr = std::shared_ptr<ChatServer>;
     // 初始化聊天服务器对象
-    explicit ChatServer(std::string name) : TCPServer(std::move(name)) {}
+    explicit ChatServer(const std::string &name = "ChatServer",
+                        Reactor *acceptor = Reactor::GetThis(), Reactor *worker = Reactor::GetThis());
 
-private:
+protected:
 
-    void handleClient(const Socket::ptr&) override;
-
+    void handleClient(const Socket::ptr &client) override;
+    
 };
 
 #endif //__CHATSERVER_H__

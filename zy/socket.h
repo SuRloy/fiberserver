@@ -4,6 +4,7 @@
 #include <memory>
 #include "address.h"
 #include "utils/noncopyable.h"
+#include <string>
 
 namespace zy {
 /**
