@@ -18,7 +18,8 @@ link_directories(/usr/local/lib)
 aux_source_directory(./zy BASE_LIST)
 aux_source_directory(./zy/utils UTIL_LIST)
 aux_source_directory(./chatroom CHATROOM_LIST)
-set(LIB_SRC ${BASE_LIST} ${UTIL_LIST} ${CHATROOM_LIST})
+aux_source_directory(./chatroom/model MODEL_LIST)
+set(LIB_SRC ${BASE_LIST} ${UTIL_LIST} ${CHATROOM_LIST} ${MODEL_LIST})
 
 # set(LIB_SRC
 #     zy/log.cc
@@ -45,6 +46,9 @@ set(LIBS
     dl
     mysqlclient
     )
+
+# add_executable(test_log "tests/test_log.cc" ${LIB_SRC})
+# target_link_libraries(test_log ${LIBS})
 
 # add_executable(test_thread "tests/test_thread.cc" ${LIB_SRC})
 # target_link_libraries(test_thread ${LIBS})

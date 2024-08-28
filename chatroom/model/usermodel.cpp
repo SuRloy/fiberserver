@@ -1,5 +1,5 @@
 #include "usermodel.hpp"
-#include "db.h"
+#include "../db.h"
 #include <iostream>
 
 bool UserModel::insert(User& user)

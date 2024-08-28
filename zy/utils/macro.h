@@ -8,7 +8,7 @@
 
 #define ZY_ASSERT(x) \
     if (!(x)) { \
-        ZY_LOG_ERROR(ZY_LOG_ROOT()) << "ASSERTION: " #x \
+        ZY_LOG_ERROR(ZY_LOG_ROOT()) << zy::getFiberId() <<" ASSERTION: " #x \
             << "\nbacktrace:\n" \
             << zy::backtraceToString(100, 2, "    "); \
         assert(x); \
@@ -16,7 +16,7 @@
 
 #define ZY_ASSERT2(x, w) \
     if (!(x)) { \
-        ZY_LOG_ERROR(ZY_LOG_ROOT()) << "ASSERTION: " #x \
+        ZY_LOG_ERROR(ZY_LOG_ROOT()) << zy::getFiberId() << " ASSERTION: " #x \
             << "\n" << w \
             << "\nbacktrace:\n" \
             << zy::backtraceToString(100, 2, "    "); \

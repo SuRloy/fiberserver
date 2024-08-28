@@ -146,6 +146,8 @@ public:
         int epoll_fd_;
         /// event fd，用于唤醒 epoll_wait
         int wakeup_fd_;
+        /// sig_fd_,用于信号处理
+        int sig_fd_;
         /// 当前等待执行的 IO 事件的数量
         std::atomic_uint32_t pending_event_num_;
         /// epoll 所管理的所有 socket fd

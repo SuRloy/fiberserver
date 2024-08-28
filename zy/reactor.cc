@@ -8,6 +8,7 @@
 #include <iostream>
 #include "log.h"
 #include "utils/macro.h"
+#include <signal.h>
 
 namespace zy {
 
@@ -185,21 +186,40 @@ void Reactor::idle() {
     static const uint32_t MAX_EVENTS = 256;
     static const uint64_t MAX_TIMEOUT = 3000;
     std::vector<epoll_event> events(MAX_EVENTS);
-
-    while (!stopping()) {
+    bool flag = false;
+    while (!stopping() && !flag) {
         // 根据定时器确定超时时间
         uint64_t next_timeout = getNextTime();
+        int event_num = 0;
+        
         if (next_timeout != ~0ull) {
             next_timeout = std::min(next_timeout, MAX_TIMEOUT);
         } else {
             next_timeout = MAX_TIMEOUT;
         }
-
         // 阻塞等待
-        int event_num = epoll_wait(epoll_fd_, &*events.begin(), MAX_EVENTS,
+        event_num = epoll_wait(epoll_fd_, &*events.begin(), MAX_EVENTS,
                                     static_cast<int>(next_timeout));
-
+        if(event_num < 0 && errno == EINTR) {
+            flag = true;
+        }
         // TODO 处理信号
+                // int rt = 0;
+        // do {
+        //     static const int MAX_TIMEOUT = 3000;
+        //     if(next_timeout != ~0ull) {
+        //         next_timeout = (int)next_timeout > MAX_TIMEOUT
+        //                         ? MAX_TIMEOUT : next_timeout;
+        //     } else {
+        //         next_timeout = MAX_TIMEOUT;
+        //     }
+        //     rt = epoll_wait(m_epfd, events, MAX_EVNETS, (int)next_timeout);
+        //     if(rt < 0 && errno == EINTR) {
+        //     } else {
+        //         break;
+        //     }
+        // } while(true);
+
         // 退出 epoll_wait 说明有定时器超时或者有事件发生
 
         // 处理超时的定时器
@@ -212,10 +232,19 @@ void Reactor::idle() {
         // 处理到来的事件
         for (int i = 0; i < event_num; ++i) {
             epoll_event &event = events[i];
+            if (event.data.fd == wakeup_fd_) {
+                uint8_t dummy;
+                while (read(wakeup_fd_, &dummy, 1) == 1);
+                continue;
+            }
+
             auto *channel = static_cast<Channel *>(event.data.ptr);
             Mutex::Lock lock(channel->mutex_);
 
             // TODO 多种事件的处理
+            // if(event.events & (EPOLLERR | EPOLLHUP)) {
+            //     event.events |= (EPOLLIN | EPOLLOUT) & fd_ctx->events;
+            // }
             // 现阶段只处理读写事件
             uint32_t real_events = ReactorEvent::NONE;
             if (event.events & EPOLLIN) {
