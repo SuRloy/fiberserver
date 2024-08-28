@@ -10,6 +10,7 @@
 #include "model/offlinemessagemodel.hpp"
 #include "model/friendmodel.hpp"
 #include "model/group_model.hpp"
+#include "redis.hpp"
 
 #include "zy/utils/mutex.h"
 
@@ -50,6 +51,8 @@ public:
     void groupChat(const Socket::ptr &client, json &js);
     // 处理客户端异常退出
     void clientCloseException(const Socket::ptr &client);
+    // 处理redis订阅信息
+    void handleRedisSubscribeMessage(int userid, string msg);
     // 服务器异常，业务重置方法
     void reset();
 
@@ -69,6 +72,9 @@ private:
 
     // 通信连接锁
     Mutex clientMutex_;
+
+    //redis操作对象
+    Redis redis_;
 };
 
 #endif

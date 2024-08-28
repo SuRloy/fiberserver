@@ -45,6 +45,7 @@ set(LIBS
     pthread
     dl
     mysqlclient
+    hiredis
     )
 
 # add_executable(test_log "tests/test_log.cc" ${LIB_SRC})
@@ -80,11 +81,11 @@ set(LIBS
 # add_executable(test_tcpserver "tests/test_tcpserver.cc" ${LIB_SRC})
 # target_link_libraries(test_tcpserver ${LIBS})
 
-add_executable(test_chatserver "tests/test_chatserver.cc" ${LIB_SRC})
-target_link_libraries(test_chatserver ${LIBS})
+add_executable(chatserver "tests/chatserver.cc" ${LIB_SRC})
+target_link_libraries(chatserver ${LIBS})
 
-add_executable(main "chatroom/client/main.cpp" ${LIB_SRC})
-target_link_libraries(main ${LIBS})
+add_executable(client "chatroom/client/client.cpp" ${LIB_SRC})
+target_link_libraries(client ${LIBS})
 
 add_library(zy SHARED ${LIB_SRC})
 

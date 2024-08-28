@@ -17,6 +17,13 @@ ChatService::ChatService()
     msgHandlerMap_.insert({GROUP_CHAT_MSG, std::bind(&ChatService::groupChat, this, _1, _2)});
 
     msgHandlerMap_.insert({LOGINOUT_MSG, std::bind(&ChatService::loginOut, this, _1, _2)});
+
+    // 连接redis服务器
+    if (redis_.connect())
+    {
+        // 设置上报消息的回调
+        redis_.init_notify_handler(std::bind(&ChatService::handleRedisSubscribeMessage, this, _1, _2));
+    }
 }
 
 MsgHandler ChatService::getHandler(int msgid)
@@ -33,6 +40,7 @@ MsgHandler ChatService::getHandler(int msgid)
 
     return msgHandlerMap_[msgid];
 }
+
 // 处理登录业务 id pwd pwd
 void ChatService::login(const Socket::ptr &client, json &js)
 {
@@ -60,6 +68,9 @@ void ChatService::login(const Socket::ptr &client, json &js)
                 Mutex::Lock lock(clientMutex_);
                 userConnMap_.insert({id, client});
             }
+
+            // id用户登录成功后，向redis订阅channel
+            redis_.subscribe(id);
 
             user.setState("online");
             userModel_.updateState(user);
@@ -187,7 +198,7 @@ void ChatService::loginOut(const Socket::ptr &client, json &js)
     }
 
     // 用户注销，相当于下线，在redis中取消订阅通道
-    //_redis.unsubscribe(userid);
+    redis_.unsubscribe(userid);
 
     // 更新用户状态信息
     User user(userid, "", "", "offline");
@@ -213,12 +224,12 @@ void ChatService::oneChatHandler(const Socket::ptr &client, json &js)
     }
 
     // 用户在其他主机的情况，publish消息到redis
-    // User user = _userModel.query(toId);
-    // if (user.getState() == "online")
-    // {
-    //     _redis.publish(toId, js.dump());
-    //     return;
-    // }
+    User user = userModel_.query(toId);
+    if (user.getState() == "online")
+    {
+        redis_.publish(toId, js.dump());
+        return;
+    }
 
     // toId 不在线则存储离线消息
     string s = js.dump();
@@ -242,6 +253,9 @@ void ChatService::clientCloseException(const Socket::ptr &client)
             }
         }
     }
+
+    // 用户注销，相当于下线，在redis中取消订阅通道
+    redis_.unsubscribe(user.getId());
 
     // 更新用户的状态信息
     if (user.getId() != -1)
@@ -308,7 +322,7 @@ void ChatService::groupChat(const Socket::ptr &client, json &js)
             if (user.getState() == "online")
             {
                 // 向群组成员publish信息
-                //_redis.publish(id, js.dump());
+                redis_.publish(id, js.dump());
             }
             else
             {
@@ -319,7 +333,22 @@ void ChatService::groupChat(const Socket::ptr &client, json &js)
     }
 }
 
+// 从redis消息队列中获取订阅的消息
+void ChatService::handleRedisSubscribeMessage(int userid, string msg)
+{
+    Mutex::Lock lock(clientMutex_);
+    auto it = userConnMap_.find(userid);
+    if (it != userConnMap_.end())
+    {
+        it->second->send(msg.c_str(), msg.length());
+        return;
+    }
 
+    // 存储该用户的离线消息
+    offlineMsgModel_.insert(userid, msg);
+}
+
+//TODO SignalBUG
 void ChatService::reset()
 {
     // 将所有online状态的用户，设置成offline
