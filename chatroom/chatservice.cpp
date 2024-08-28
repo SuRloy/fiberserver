@@ -11,6 +11,12 @@ ChatService::ChatService()
     msgHandlerMap_.insert({REGISTER_MSG, std::bind(&ChatService::reg, this, _1, _2)});
     msgHandlerMap_.insert({ONE_CHAT_MSG, std::bind(&ChatService::oneChatHandler, this, _1, _2)});
     msgHandlerMap_.insert({ADD_FRIEND_MSG, std::bind(&ChatService::addFriendHandler, this, _1, _2)});
+
+    msgHandlerMap_.insert({CREATE_GROUP_MSG, std::bind(&ChatService::createGroup, this, _1, _2)});
+    msgHandlerMap_.insert({ADD_GROUP_MSG, std::bind(&ChatService::addGroup, this, _1, _2)});
+    msgHandlerMap_.insert({GROUP_CHAT_MSG, std::bind(&ChatService::groupChat, this, _1, _2)});
+
+    msgHandlerMap_.insert({LOGINOUT_MSG, std::bind(&ChatService::loginOut, this, _1, _2)});
 }
 
 MsgHandler ChatService::getHandler(int msgid)
@@ -87,6 +93,36 @@ void ChatService::login(const Socket::ptr &client, json &js)
                 response["friends"] = vec;
             }
 
+            // 查询用户的群组消息
+            vector<Group> groupuserVec = groupModel_.queryGroups(id);
+            if (!groupuserVec.empty())
+            {
+                // group:[{groupid:[xxx, xxx, xxx, xxx]}]
+                vector<string> groupV;
+                for (Group& group : groupuserVec)
+                {
+                    json grpjson;
+                    grpjson["id"] = group.getId();
+                    grpjson["groupname"] = group.getName();
+                    grpjson["groupdesc"] = group.getDesc();
+                    vector<string> userV;
+                    for (GroupUser& user : group.getUsers())
+                    {
+                        json js;
+                        js["id"] = user.getId();
+                        js["name"] = user.getName();
+                        js["state"] = user.getState();
+                        js["role"] = user.getRole();
+                        userV.emplace_back(js.dump());
+                    }
+                    grpjson["users"] = userV;
+                    groupV.emplace_back(grpjson.dump());
+                }
+
+                response["groups"] = groupV;
+            }
+
+
             string s = response.dump();
             client->send(s.c_str(), s.length());
         }
@@ -135,6 +171,27 @@ void ChatService::reg(const Socket::ptr &client, json &js)
         string s = response.dump();
         client->send(s.c_str(), s.length());
     }
+}
+
+void ChatService::loginOut(const Socket::ptr &client, json &js)
+{
+    int userid = js["id"].get<int>();
+
+    {
+        Mutex::Lock lock(clientMutex_);
+        auto it = userConnMap_.find(userid);
+        if (it != userConnMap_.end())
+        {
+            userConnMap_.erase(it);
+        }
+    }
+
+    // 用户注销，相当于下线，在redis中取消订阅通道
+    //_redis.unsubscribe(userid);
+
+    // 更新用户状态信息
+    User user(userid, "", "", "offline");
+    userModel_.updateState(user);
 }
 
 void ChatService::oneChatHandler(const Socket::ptr &client, json &js)

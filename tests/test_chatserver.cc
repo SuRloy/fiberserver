@@ -19,7 +19,7 @@ void run() {
 }
 
 int main() {
-    Reactor r("reactor");
+    Reactor r("reactor", 1);
     r.addTask(run);
     return 0;
 }

@@ -36,6 +36,8 @@ public:
     void login(const Socket::ptr &client, json &js);
     // 处理注册业务
     void reg(const Socket::ptr &client, json &js);
+    //注销服务
+    void loginOut(const Socket::ptr &client, json &js);
     // 一对一聊天业务
     void oneChatHandler(const Socket::ptr &client, json &js);
     // 添加好友业务

@@ -83,5 +83,8 @@ set(LIBS
 add_executable(test_chatserver "tests/test_chatserver.cc" ${LIB_SRC})
 target_link_libraries(test_chatserver ${LIBS})
 
+add_executable(main "chatroom/client/main.cpp" ${LIB_SRC})
+target_link_libraries(main ${LIBS})
+
 add_library(zy SHARED ${LIB_SRC})
 
